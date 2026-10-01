@@ -9,6 +9,7 @@ try {
 } catch {
   vscode = {
     window: {
+      terminals: [],
       createOutputChannel: () => ({ appendLine: () => {} }),
       showWarningMessage: async (msg, opts, ...items) => (items && items.length > 0 ? items[0] : (typeof opts === 'string' ? opts : 'Удалить')),
       registerWebviewViewProvider: () => ({ dispose: () => {} }),
@@ -51,6 +52,16 @@ let disposables = [];
 function log(msg) {
   if (!outputChannel) outputChannel = vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
   outputChannel.appendLine(`[${new Date().toLocaleTimeString()}] ${msg}`);
+}
+
+function refreshTerminals() {
+  try {
+    if (vscode && vscode.window && Array.isArray(vscode.window.terminals)) {
+      for (const t of vscode.window.terminals) {
+        t.sendText('', true);
+      }
+    }
+  } catch (_) {}
 }
 
 function gitExec(args, cwd) {
@@ -166,23 +177,28 @@ async function getDetailedBranches(cwd, defaultBranch, currentBranch) {
   const remoteBranches = new Set();
   try {
     const lo = await gitExec(['branch', '--format=%(refname:short)'], cwd);
-    lo.split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(b => localBranches.add(b));
+    lo.split(/\r?\n/)
+      .map(s => s.trim())
+      .filter(s => s && s !== 'origin' && s !== 'HEAD')
+      .forEach(b => localBranches.add(b));
   } catch {}
   try {
-    const ro = await gitExec(['for-each-ref', '--format=%(refname:short)', 'refs/remotes/origin/'], cwd);
+    const ro = await gitExec(['branch', '-r', '--format=%(refname:short)'], cwd);
     ro.split(/\r?\n/)
       .map(s => s.trim())
-      .filter(s => s && s !== 'origin/HEAD')
+      .filter(s => s && s.startsWith('origin/') && s !== 'origin/HEAD')
       .map(s => s.replace(/^origin\//, ''))
-      .filter(Boolean)
+      .filter(b => b && b !== 'origin' && b !== 'HEAD')
       .forEach(b => remoteBranches.add(b));
   } catch {}
 
-  const allNames = [...new Set([...localBranches, ...remoteBranches])].sort((a, b) => {
-    if (a === 'main' || a === 'master') return -1;
-    if (b === 'main' || b === 'master') return 1;
-    return a.localeCompare(b);
-  });
+  const allNames = [...new Set([...localBranches, ...remoteBranches])]
+    .filter(name => name && name !== 'origin' && name !== 'HEAD')
+    .sort((a, b) => {
+      if (a === 'main' || a === 'master') return -1;
+      if (b === 'main' || b === 'master') return 1;
+      return a.localeCompare(b);
+    });
 
   const protectedNames = new Set(['main', 'master', defaultBranch, currentBranch].filter(Boolean));
 
@@ -546,6 +562,7 @@ class GithubPanelProvider {
     const localSHA = await getLocalSHA(cwd);
     const remoteSHA = await getRemoteSHA(cwd, name);
     if (localSHA && remoteSHA && localSHA === remoteSHA) {
+      refreshTerminals();
       this._postMessage({
         type: 'branchOk',
         branch: name,
@@ -593,10 +610,12 @@ class GithubPanelProvider {
       throw new Error(`Switch verification FAILED. Current: ${currentBranch}`);
     }
 
+    refreshTerminals();
+
     this._postMessage({
       type: 'switchOk',
       branch: name,
-      message: `Переключено на "${name}". (Git Bash обновит prompt при следующем вводе)`,
+      message: `Переключено на "${name}".`,
     });
 
     await this._sendState();
@@ -639,31 +658,6 @@ class GithubPanelProvider {
       return;
     }
 
-    // Check unmerged commits for each branch
-    const forceApproved = new Set();
-    for (const b of branchesToDelete) {
-      const unmerged = await countUnmergedCommits(cwd, b, defaultBranch);
-      if (unmerged > 0) {
-        const forceChoice = await vscode.window.showWarningMessage(
-          `Ветка "${b}" содержит ${unmerged} уникальных коммитов, не слитых в ${defaultBranch}. Удалить принудительно с потерей коммитов?`,
-          { modal: true },
-          'Удалить принудительно',
-          'Пропустить'
-        );
-        if (forceChoice === 'Удалить принудительно') {
-          forceApproved.add(b);
-        } else {
-          // Skip this branch
-          branchesToDelete = branchesToDelete.filter(item => item !== b);
-        }
-      }
-    }
-
-    if (branchesToDelete.length === 0) {
-      this._postMessage({ type: 'status', text: 'Удаление отменено пользователем.' });
-      return;
-    }
-
     const deleted = [];
     const failed = [];
 
@@ -671,12 +665,10 @@ class GithubPanelProvider {
       let bSuccess = true;
       let errMsgs = [];
 
-      // 1. Delete local branch if exists
+      // 1. Delete local branch forcefully (-D)
       try {
-        const flag = forceApproved.has(b) ? '-D' : '-d';
-        await gitExec(['branch', flag, b], cwd);
+        await gitExec(['branch', '-D', b], cwd);
       } catch (err) {
-        // Maybe it's remote-only
         if (!err.message.includes('not found')) {
           errMsgs.push(`local: ${err.message}`);
           bSuccess = false;
@@ -687,12 +679,16 @@ class GithubPanelProvider {
       try {
         await gitExec(['push', 'origin', '--delete', b], cwd);
       } catch (err) {
-        // Maybe it was local-only
-        if (!err.message.includes('remote ref does not exist')) {
+        if (!err.message.includes('remote ref does not exist') && !err.message.includes('unable to delete')) {
           errMsgs.push(`remote: ${err.message}`);
           bSuccess = false;
         }
       }
+
+      // 3. Delete remote-tracking reference if still present
+      try {
+        await gitExec(['branch', '-dr', `origin/${b}`], cwd);
+      } catch {}
 
       if (bSuccess) {
         deleted.push(b);
@@ -701,8 +697,9 @@ class GithubPanelProvider {
       }
     }
 
-    // Fetch prune
+    // Fetch prune to clean remote refs
     try { await gitExec(['fetch', 'origin', '--prune'], cwd); } catch {}
+    refreshTerminals();
 
     if (failed.length === 0) {
       this._postMessage({
@@ -1209,7 +1206,7 @@ function updateBranchSelect(branches, current) {
   for (const b of branches) {
     const opt = document.createElement('option');
     opt.value = b.name;
-    opt.textContent = b.name + ' (' + b.location + ')';
+    opt.textContent = b.name;
     if (b.name === current) {
       opt.selected = true;
     }
