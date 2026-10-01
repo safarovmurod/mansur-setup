@@ -148,3 +148,8 @@ npm run doctor
 ## Лицензия
 
 MIT License (c) 2026 Mansur.
+
+
+## Обновлённый frontend mentor
+
+Речь, beginner-код, Zustand/Redux/Jotai local/global и честная проверка: [инструкция и границы обновления](docs/MANSUR-MENTOR-UPDATE.md). Для точечного обновления без общего IDE installer: `node scripts/install-mentor-skill.cjs --dry-run`, затем `node scripts/install-mentor-skill.cjs`.

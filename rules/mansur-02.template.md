@@ -12,25 +12,19 @@ trigger: always_on
 - Safety first: Before deleting important files, mass modifying project files, altering IDE configuration, or running destructive shell commands, verify safety and necessity. Never perform destructive operations based on guesses.
 - Run relevant existing lint, type-check and build scripts when application code changes. Report failures honestly. Settings-only checks do not prove an application build passes.
 
-## Stack, files and TypeScript
-- New application work: React + TypeScript + Vite + Tailwind; React Router when routing is needed; Axios for API tasks unless the project already has an appropriate fetch approach. Do not install unused packages.
-- Check installed packages before adding any new dependency: if a task can be accomplished with already installed tools, do not install a new library.
-- Use native HTML elements inside React TSX and simple Tailwind className strings. Do not use MUI components, imports, sx, examples or design recommendations.
-- Components and files containing JSX syntax use `.tsx`. Stores, slices, types, data and non-JSX logic use `.ts`. Do not generate application `.jsx`/`.js` or avoid a type error by switching to JavaScript. Tool-required configuration filenames retain supported extensions.
-- **TypeScript Only Rule (Строгий режим стека)**:
-  - Все новые файлы и новый код проекта создавать ТОЛЬКО в TypeScript:
-    - `.tsx` — для любых React-компонентов и файлов с JSX-разметкой.
-    - `.ts` — для store, atom, slice, API, types, utils, config-логики без JSX.
-  - СТРОГО ЗАПРЕЩЕНО создавать новые `.js` и `.jsx` файлы или предлагать их как альтернативу.
-  - Существующие `.js/.jsx` файлы проекта автоматически НЕ удалять и НЕ конвертировать. Если они обнаружены — только сообщить о них в отчёте. Менять или удалять `.js/.jsx` разрешено только по прямому запросу пользователя.
-- Convert only explicitly included projects; inspect references and preserve behavior. Resolve references before removing obsolete dependencies.
-- Use simple types/interfaces from real data, inference and import type. No `any`, `@ts-ignore`, weakened checks or unjustified assertions to hide errors.
-- Necessary `PayloadAction<number>`, `useState<User | null>` and form-event types are allowed. Explain unfamiliar types; keep real ID types consistent.
-- Use Redux Toolkit, Zustand, or Jotai only where chosen or requested. Do not add Next.js, React Query, Framer Motion or another framework without a task-related request.
+## Stack: current agreement
+- Current explicit request first; inspect package.json and existing files.
+- New examples default to React + JSX + Vite + MUI + React Router + Axios; install only needed dependencies.
+- Keep existing/requested TypeScript, Tailwind, Redux Toolkit, Zustand or Jotai. Do not migrate working projects or mix managers without a task.
+- JSX projects use .jsx for components and .js for non-JSX logic. TS projects use .tsx/.ts and real, simple types; no any/@ts-ignore/unsafe assertions to hide errors.
+- MUI + sx is the new-example default. Tailwind className remains for existing or explicitly selected Tailwind projects.
+- No unsolicited Next.js, React Query, Framer Motion, class components, custom hooks, useReducer/useRef/useMemo/useCallback/memo, forwardRef/useImperativeHandle/useLayoutEffect. Preserve existing working usage.
+- Simple named handlers, immutable updates, real API fields/id types, no unnecessary abstraction or dependency.
+- Convert projects or remove dependencies only when explicitly requested and after checking usages.
 
 ## Design and browser verification
-- First inspect all reference sections, layout, spacing, typography, colors, borders and images; then recheck against the project, assets, Tailwind and style.
-- Implement native TSX + Tailwind, connect the component/page, render in the browser, compare with the reference and fix confirmed differences. Repeat the relevant checks until resolved or report a concrete blocker. Do not claim visual matching without viewing the result.
+- First inspect all reference sections, layout, spacing, typography, colors, borders and images; then recheck against the project, assets and its actual styling system.
+- Use the existing or explicitly requested stack, connect the component/page, render in the browser, compare with the reference and fix confirmed differences. Repeat the relevant checks until resolved or report a concrete blocker. Do not claim visual matching without viewing the result.
 - No invented sections, effects, API or image URLs. Prefer local assets; keep filenames. Ask for missing assets/placeholder permission and mobile references when needed.
 - Label estimated screenshot dimensions/fonts honestly; describe visual fixes by file/component/property.
 - Distinguish missing routes from application crashes. Use appropriate route error UI and separate 404 routes when the router/task supports it; do not add a router solely for this. Route error handling does not catch every event-handler or asynchronous error.
@@ -49,7 +43,7 @@ trigger: always_on
 - If user asks "чиба?" (why?): do NOT start with a lecture. State the concrete cause immediately first (e.g. "Ича import неправильныйай"), then briefly show where and how to fix it.
 - Teach one practical step per message: file, location, code, explanation, result, then wait. Continue after "шд". Do not send five files/full CRUD at once.
 - New topics: problem → idea → logic → code → before/after walkthrough. Give hints, simpler everyday examples if needed, relevant mistakes and a small exercise.
-- Use a short 3–5 sentence "ЗАПИШИ В ТЕТРАДЬ" note only for a new topic. Ordinary debugging/settings replies do not need it.
+- Use a short 3–5 sentence "📓 ДАР ДАФТАР НАВИС" note only for a new topic or explicit notebook request. Ordinary debugging/settings replies do not need it.
 
 ## Antigravity IDE and performance
 - For Antigravity configuration tasks: analyze existing settings first. Do not create duplicate scripts, extensions, or rules.

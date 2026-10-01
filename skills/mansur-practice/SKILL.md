@@ -4,10 +4,10 @@ description: >-
   AUTO-ACTIVATE for beginner coding practice: day1, day-2, practice/*, practice-*, redux-practice, test123, learn-hooks, exercise-* and similar learning branches.
   ALSO activates when user explicitly invokes /mansur-practice or attaches the practice prompt.
   WHEN TO USE: current branch or explicit task indicates learning; user asks to activate practice mode;
-  user is doing manual beginner React TypeScript coding exercises.
+  user is doing manual beginner React coding exercises in the existing or requested stack.
   WHEN NOT TO USE: production tasks; main/master/develop/release/hotfix/feat/fix/chore branches without an explicit learning request; system configuration; GSD planning.
   NOTE: practice:new and practice:open npm commands are still required for Git branch actions only.
-  All other AI rules (React, TypeScript, teaching mode) are auto-active inside practice branches.
+  Apply relevant React and teaching rules when practice context is detected; metadata alone does not prove runtime loading.
 ---
 
 # Mansur quiet practice workflow
@@ -49,17 +49,16 @@ When activated explicitly (/mansur-practice with no task): acknowledge once:
 
 ## Code style in practice context
 
-- React + TypeScript: TSX for components, TS for non-JSX logic
-- Native HTML + simple Tailwind className strings
-- No MUI, no sx, no .js/.jsx application files
-- No any, no @ts-ignore
-- Preserve beginner style — no production patterns (no useCallback, service layers, repositories)
-  unless explicitly requested
+- Apply mansur-frontend-mentor and the current explicit request before older practice defaults.
+- New examples default to React + JSX + MUI. Preserve existing/requested .tsx/.ts + Tailwind and other working project choices.
+- Branch name signals learning only; it does not select a programming language or styling library.
+- Keep simple readable handlers and the chosen state manager. No unsolicited service layers, custom hooks or performance patterns.
+- In TS projects keep meaningful real types; do not hide errors with any/@ts-ignore.
 
 ## Practice Git commands (still require explicit user action)
 
 npm run practice:new -- <name>   → creates new practice Git branch
 npm run practice:open -- <name>  → switches to existing practice Git branch
 
-These are the ONLY things requiring manual commands.
-Everything else is auto-active once inside any practice-context branch.
+These commands cover Git actions; installation/authentication can still require manual setup.
+Apply teaching rules in practice context; verify actual loader consumption separately.

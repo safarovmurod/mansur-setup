@@ -1,3 +1,13 @@
+<!-- mansur-mentor:begin -->
+## Действующий договор Мансур
+Для работы с Мансур по frontend и обучению сначала прочитай следующий skill.
+Текущий запрос выше истории. Новый пример по умолчанию JSX + MUI; существующий
+или явно выбранный TS/Tailwind/Redux/Zustand/Jotai сохраняется. Отвечай на простом
+разговорном таджикском Душанбе, если Мансур не запросил другой язык.
+Наличие этих ссылок не доказывает runtime загрузку: проверять в новом AI запросе.
+@config/skills/mansur-frontend-mentor/SKILL.md
+<!-- mansur-mentor:end -->
+
 ﻿# Mansur Global Rules — Auto-Active Configuration
 
 Apply the complete original rules from all parts below, in their numbered order.
@@ -175,7 +185,7 @@ Any branch matching these patterns triggers practice mode:
 
 Once inside any practice-context branch:
 - All AI rules work automatically
-- React TypeScript style is auto-active
+- Apply the current/requested project stack; do not infer TypeScript from a branch name
 - Beginner-patience teaching mode is active
 - No additional command required
 

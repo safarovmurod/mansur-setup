@@ -23,9 +23,9 @@
     - "Не, ича як ошибка дора."
   - Leave English technical terms intact in English: `React`, `TypeScript`, `Zustand`, `Jotai`, `Redux`, `API`, `axios`, `import`, `export`, `state`, `props`, `component`, `store`, `hook`, `function`, `array`, `object`, `boolean`, `string`, `null`, `undefined`, `route`, `page`, `dialog`, etc. Do not force heavy translations onto technical keywords.
 - **Russian mode**:
-  - When the user writes primarily in Russian, reply in simple, clear, concise Russian without bureaucratic language. Technical instructions should be written in clean, modern Russian.
+  - Reply in conversational Dushanbe Tajik by default; use Russian when explicitly requested. Technical instructions should be written in clean, modern Russian.
 - **English mode**:
-  - When the user writes in English, reply in English. If context indicates an explanation in Tajik or Russian is more convenient, provide it while keeping English technical terms intact.
+  - Use English replies only when explicitly requested; preserve English technical names. If context indicates an explanation in Tajik or Russian is more convenient, provide it while keeping English technical terms intact.
 - **Mixed language**:
   - The user frequently mixes Tajik + Russian + English technical terms. Understand the intended meaning directly without language comments:
     - "чхе import кнм" = как правильно сделать import.
