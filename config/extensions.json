@@ -170,7 +170,7 @@
   {
     "id": "mansur.mansur-github-panel",
     "name": "Mansur GitHub Panel",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "description": "GitHub Explorer panel with Git push, branch switch, new branch, dirty protection, and secret filtering",
     "category": "Other",
     "source": "local-vsix"

@@ -35,8 +35,7 @@
     "install-setup": "node bin/mansur-setup.js install",
     "doctor": "node bin/mansur-setup.js doctor",
     "backup": "node bin/mansur-setup.js backup",
-    "restore": "node bin/mansur-setup.js restore",
-    "test": "node --test tests/test-installer.mjs tests/test-jsonc.mjs tests/test-git-guards.mjs tests/test-secrets-audit.mjs"
+    "test": "node --test tests/test-installer.mjs tests/test-jsonc.mjs tests/test-git-guards.mjs tests/test-github-panel.mjs tests/test-secrets-audit.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

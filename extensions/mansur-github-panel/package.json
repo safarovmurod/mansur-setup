@@ -1,8 +1,8 @@
 {
   "name": "mansur-github-panel",
   "displayName": "Mansur GitHub Panel",
-  "description": "GitHub Explorer panel — Git Push, New Branch, Branch Select",
-  "version": "1.1.1",
+  "description": "GitHub Explorer panel - CURRENT, NEW BRANCH, MY BRANCH, and DELETE BRANCH",
+  "version": "1.2.0",
   "publisher": "mansur",
   "engines": {
     "vscode": "^1.80.0"

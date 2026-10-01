@@ -1,15 +1,38 @@
 // mansur-github-panel — extension.js
-// Глобальное расширение для Antigravity IDE (VS Code fork)
-// Все операции Git выполняются через Git CLI как надёжный fallback
+// Custom GitHub Explorer panel for Antigravity IDE (VS Code fork)
+// Provides CURRENT, NEW BRANCH, MY BRANCH, and DELETE BRANCH blocks
 'use strict';
 
-const vscode = require('vscode');
+let vscode;
+try {
+  vscode = require('vscode');
+} catch {
+  vscode = {
+    window: {
+      createOutputChannel: () => ({ appendLine: () => {} }),
+      showWarningMessage: async (msg, opts, ...items) => (items && items.length > 0 ? items[0] : (typeof opts === 'string' ? opts : 'Удалить')),
+      registerWebviewViewProvider: () => ({ dispose: () => {} }),
+    },
+    commands: { registerCommand: () => ({ dispose: () => {} }) },
+    workspace: { workspaceFolders: [] },
+  };
+}
 const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-// ─── константы ───────────────────────────────────────────────────────────────
-const GIT = 'C:\\Program Files\\Git\\cmd\\git.exe';
+function findGitExecutable() {
+  const candidates = [
+    'C:\\Program Files\\Git\\cmd\\git.exe',
+    'C:\\Program Files\\Git\\bin\\git.exe',
+  ];
+  for (const cand of candidates) {
+    if (fs.existsSync(cand)) return cand;
+  }
+  return 'git';
+}
+
+const GIT = findGitExecutable();
 const PANEL_ID = 'mansurGithubPanel';
 const OUTPUT_CHANNEL_NAME = 'Mansur GitHub Panel';
 const SECRET_PATTERNS = [
@@ -21,12 +44,9 @@ const SECRET_PATTERNS = [
 ];
 const SECRET_WHITELIST = [/^\.env\.example$/i];
 
-// ─── глобальные disposables ───────────────────────────────────────────────────
-let outputChannel;
 let panelProvider;
+let outputChannel;
 let disposables = [];
-
-// ─── утилиты ─────────────────────────────────────────────────────────────────
 
 function log(msg) {
   if (!outputChannel) outputChannel = vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
@@ -35,12 +55,12 @@ function log(msg) {
 
 function gitExec(args, cwd) {
   return new Promise((resolve, reject) => {
-    execFile(GIT, args, { cwd, encoding: 'utf8', timeout: 30000, windowsHide: true }, (err, stdout, stderr) => {
+    execFile(GIT, args, { cwd, encoding: 'utf8', timeout: 45000, windowsHide: true }, (err, stdout, stderr) => {
       if (err) {
         log(`git ${args.join(' ')} => ERROR: ${stderr || err.message}`);
         reject(new Error(stderr ? stderr.trim() : err.message));
       } else {
-        resolve(stdout.trim());
+        resolve(stdout ? stdout.trim() : '');
       }
     });
   });
@@ -49,7 +69,6 @@ function gitExec(args, cwd) {
 function getWorkspaceRoot() {
   const wf = vscode.workspace.workspaceFolders;
   if (!wf || wf.length === 0) return null;
-  // Если есть активный editor — ищем его workspace folder
   const active = vscode.window.activeTextEditor;
   if (active) {
     const folder = vscode.workspace.getWorkspaceFolder(active.document.uri);
@@ -93,43 +112,28 @@ async function getRemoteSHA(cwd, branch) {
   } catch { return null; }
 }
 
-async function getBranches(cwd) {
-  let locals = [];
-  let remotes = [];
-  try {
-    const localOut = await gitExec(['branch', '--format=%(refname:short)'], cwd);
-    locals = localOut.split('\n').map(s => s.trim()).filter(Boolean);
-  } catch {}
-  try {
-    const remoteOut = await gitExec(['for-each-ref', '--format=%(refname:short)', 'refs/remotes/origin/'], cwd);
-    remotes = remoteOut.split('\n')
-      .map(s => s.trim())
-      .filter(s => s && s !== 'origin/HEAD')
-      .map(s => s.replace(/^origin\//, ''))
-      .filter(Boolean);
-  } catch {}
-  // merge + deduplicate
-  const all = [...new Set([...locals, ...remotes])];
-  return all;
-}
-
 async function detectDefaultBranch(cwd) {
-  // 1. origin/HEAD
   try {
     const out = await gitExec(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], cwd);
     if (out) return out.replace(/^origin\//, '');
   } catch {}
-  // 2. main
   try {
     await gitExec(['rev-parse', '--verify', 'refs/remotes/origin/main'], cwd);
     return 'main';
   } catch {}
-  // 3. master
   try {
     await gitExec(['rev-parse', '--verify', 'refs/remotes/origin/master'], cwd);
     return 'master';
   } catch {}
-  return null;
+  try {
+    await gitExec(['rev-parse', '--verify', 'refs/heads/main'], cwd);
+    return 'main';
+  } catch {}
+  try {
+    await gitExec(['rev-parse', '--verify', 'refs/heads/master'], cwd);
+    return 'master';
+  } catch {}
+  return 'main';
 }
 
 function checkSecretFiles(files) {
@@ -144,12 +148,76 @@ function checkSecretFiles(files) {
   return bad;
 }
 
-async function getStagedFiles(cwd) {
-  const out = await gitExec(['ls-files', '-z', '--cached', '--others', '--exclude-standard'], cwd);
-  return out.split('\0').filter(Boolean);
+async function getModifiedAndUntrackedFiles(cwd) {
+  const out = await gitExec(['status', '--porcelain', '-z'], cwd);
+  if (!out) return [];
+  const entries = out.split('\0').filter(Boolean);
+  const files = [];
+  for (const entry of entries) {
+    if (entry.length > 3) {
+      files.push(entry.slice(3).trim());
+    }
+  }
+  return files;
 }
 
-// ─── GitState — главный объект состояния ─────────────────────────────────────
+async function getDetailedBranches(cwd, defaultBranch, currentBranch) {
+  const localBranches = new Set();
+  const remoteBranches = new Set();
+  try {
+    const lo = await gitExec(['branch', '--format=%(refname:short)'], cwd);
+    lo.split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(b => localBranches.add(b));
+  } catch {}
+  try {
+    const ro = await gitExec(['for-each-ref', '--format=%(refname:short)', 'refs/remotes/origin/'], cwd);
+    ro.split(/\r?\n/)
+      .map(s => s.trim())
+      .filter(s => s && s !== 'origin/HEAD')
+      .map(s => s.replace(/^origin\//, ''))
+      .filter(Boolean)
+      .forEach(b => remoteBranches.add(b));
+  } catch {}
+
+  const allNames = [...new Set([...localBranches, ...remoteBranches])].sort((a, b) => {
+    if (a === 'main' || a === 'master') return -1;
+    if (b === 'main' || b === 'master') return 1;
+    return a.localeCompare(b);
+  });
+
+  const protectedNames = new Set(['main', 'master', defaultBranch, currentBranch].filter(Boolean));
+
+  return allNames.map(name => {
+    const isLocal = localBranches.has(name);
+    const isRemote = remoteBranches.has(name);
+    let location = 'local';
+    if (isLocal && isRemote) location = 'local + origin';
+    else if (isRemote) location = 'origin';
+
+    return {
+      name,
+      isLocal,
+      isRemote,
+      location,
+      isCurrent: name === currentBranch,
+      isProtected: protectedNames.has(name),
+    };
+  });
+}
+
+async function countUnmergedCommits(cwd, branch, baseBranch) {
+  let count = 0;
+  const baseRef = baseBranch ? `origin/${baseBranch}` : 'origin/main';
+  try {
+    const out = await gitExec(['rev-list', '--count', `${baseRef}..refs/heads/${branch}`], cwd);
+    count += parseInt(out.trim(), 10) || 0;
+  } catch {
+    try {
+      const out2 = await gitExec(['rev-list', '--count', `refs/heads/${baseBranch}..refs/heads/${branch}`], cwd);
+      count += parseInt(out2.trim(), 10) || 0;
+    } catch {}
+  }
+  return count;
+}
 
 async function collectState(cwd = getWorkspaceRoot()) {
   const state = {
@@ -159,31 +227,49 @@ async function collectState(cwd = getWorkspaceRoot()) {
     remote: null,
     status: null,
     isClean: true,
+    isProtected: false,
+    defaultBranch: 'main',
     mergeInProgress: false,
     rebaseInProgress: false,
     error: null,
   };
-  if (!cwd) { state.error = 'No workspace open'; return state; }
+
+  if (!cwd) {
+    state.error = 'No workspace open';
+    return state;
+  }
+
   state.isRepo = await isGitRepo(cwd);
-  if (!state.isRepo) { state.error = 'Not a Git repository'; return state; }
+  if (!state.isRepo) {
+    state.error = 'Not a Git repository';
+    return state;
+  }
+
   state.branch = await getCurrentBranch(cwd);
-  if (!state.branch) { state.error = 'Detached HEAD or no branch'; return state; }
+  if (!state.branch) {
+    state.error = 'Detached HEAD or no branch';
+    return state;
+  }
+
   state.remote = await getRemote(cwd);
+  state.defaultBranch = await detectDefaultBranch(cwd);
+  state.isProtected = ['main', 'master', state.defaultBranch].includes(state.branch);
+
   const porcelain = await getStatus(cwd);
   state.status = porcelain;
   state.isClean = !porcelain;
-  // check merge/rebase state
+
   try {
-    const gitDir = await gitExec(['rev-parse', '--git-dir'], cwd);
-    state.mergeInProgress = fs.existsSync(path.join(cwd, gitDir, 'MERGE_HEAD'));
+    const rawGitDir = await gitExec(['rev-parse', '--git-dir'], cwd);
+    const gitDir = path.isAbsolute(rawGitDir) ? rawGitDir : path.join(cwd, rawGitDir);
+    state.mergeInProgress = fs.existsSync(path.join(gitDir, 'MERGE_HEAD'));
     state.rebaseInProgress =
-      fs.existsSync(path.join(cwd, gitDir, 'rebase-merge')) ||
-      fs.existsSync(path.join(cwd, gitDir, 'rebase-apply'));
+      fs.existsSync(path.join(gitDir, 'rebase-merge')) ||
+      fs.existsSync(path.join(gitDir, 'rebase-apply'));
   } catch {}
+
   return state;
 }
-
-// ─── WebviewViewProvider ──────────────────────────────────────────────────────
 
 class GithubPanelProvider {
   constructor() {
@@ -197,24 +283,38 @@ class GithubPanelProvider {
     webviewView.webview.options = { enableScripts: true };
     webviewView.webview.html = this._getHtml();
 
-    // сообщения от webview
     webviewView.webview.onDidReceiveMessage(async msg => {
       if (!msg || typeof msg.command !== 'string' || this._busy) return;
-      const mutation = ['push', 'newBranch', 'switchBranch'].includes(msg.command);
+      const mutation = ['push', 'newBranch', 'switchBranch', 'deleteBranches'].includes(msg.command);
       if (mutation) this._busy = true;
+
       try {
         switch (msg.command) {
-          case 'init': await this._sendState(); break;
-          case 'push': await this._handlePush(); break;
-          case 'newBranch': await this._handleNewBranch(msg.name); break;
-          case 'switchBranch': await this._handleSwitchBranch(msg.name); break;
-          case 'refresh': await this._sendState(); break;
+          case 'init':
+          case 'refresh':
+            await this._sendState();
+            break;
+          case 'push':
+            await this._handlePush(msg.commitMessage);
+            break;
+          case 'newBranch':
+            await this._handleNewBranch(msg.name);
+            break;
+          case 'switchBranch':
+            await this._handleSwitchBranch(msg.name);
+            break;
+          case 'deleteBranches':
+            await this._handleDeleteBranches(msg.branches);
+            break;
         }
       } catch (e) {
-        log(`Message handler error: ${e.message}`);
+        log(`Handler error: ${e.message}`);
         this._postMessage({ type: 'error', text: e.message });
       } finally {
-        if (mutation) { this._busy = false; await this._sendState(); }
+        if (mutation) {
+          this._busy = false;
+          await this._sendState();
+        }
       }
     }, null, disposables);
 
@@ -233,7 +333,9 @@ class GithubPanelProvider {
     try {
       const s = await collectState();
       s.busy = this._busy;
-      const branches = s.isRepo && s.branch ? await getBranches(s.cwd).catch(() => []) : [];
+      const branches = s.isRepo && s.branch
+        ? await getDetailedBranches(s.cwd, s.defaultBranch, s.branch).catch(() => [])
+        : [];
       this._postMessage({ type: 'state', state: s, branches });
     } catch (e) {
       this._postMessage({ type: 'error', text: e.message });
@@ -246,204 +348,377 @@ class GithubPanelProvider {
     }
   }
 
-  // ─── Git Push ─────────────────────────────────────────────────────────────
-  async _handlePush() {
+  // 1. CURRENT: Commit Message + Git Push
+  async _handlePush(commitMessage) {
     const cwd = getWorkspaceRoot();
-    if (!cwd) { this._postMessage({ type: 'error', text: 'No workspace open' }); return; }
+    if (!cwd) throw new Error('No workspace open');
 
     const state = await collectState(cwd);
     if (state.error) throw new Error(state.error);
     if (state.mergeInProgress || state.rebaseInProgress) throw new Error('Finish the merge/rebase first.');
     const branch = state.branch;
-    if (!state.remote) throw new Error('origin: missing. Configure the repository remote first.');
-    let upstream = null;
-    try { upstream = await gitExec(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], cwd); } catch {}
-    if (upstream && upstream !== 'origin/' + branch) {
-      throw new Error('Upstream does not match origin/' + branch + '. Resolve tracking before Git Push.');
-    }
 
-    // check status
-    const porcelain = await getStatus(cwd);
-    if (porcelain) {
-      // secret check
-      const files = await getStagedFiles(cwd);
-      const badFiles = checkSecretFiles(files);
-      if (badFiles.length > 0) {
-        this._postMessage({ type: 'error', text: `⛔ Secret file detected: ${badFiles.join(', ')}. Add to .gitignore first.` });
+    // Protection check
+    if (state.isProtected) {
+      const confirmPush = await vscode.window.showWarningMessage(
+        `Ветка "${branch}" является базовой (main/master). Точно отправить изменения в origin/${branch}?`,
+        { modal: true },
+        'Отправить в ' + branch,
+        'Отмена'
+      );
+      if (confirmPush !== 'Отправить в ' + branch) {
+        this._postMessage({ type: 'status', text: 'Пуш в базовую ветку отменён пользователем.' });
         return;
       }
+    }
 
-      // user.name / user.email check
+    if (!state.remote) {
+      throw new Error('origin: missing. Configure the repository remote first.');
+    }
+
+    // Upstream tracking check
+    let upstream = null;
+    try {
+      upstream = await gitExec(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], cwd);
+    } catch {}
+
+    if (upstream && upstream !== 'origin/' + branch) {
+      throw new Error(`Upstream (${upstream}) does not match origin/${branch}. Resolve tracking before Git Push.`);
+    }
+
+    const porcelain = await getStatus(cwd);
+
+    if (porcelain) {
+      // Dirty working tree requires a commit message
+      const msg = typeof commitMessage === 'string' ? commitMessage.trim() : '';
+      if (!msg) {
+        throw new Error('Введи commit message для сохранения изменений.');
+      }
+
+      // Pre-staging secret checks
+      const files = await getModifiedAndUntrackedFiles(cwd);
+      const badFiles = checkSecretFiles(files);
+      if (badFiles.length > 0) {
+        throw new Error(`Secret file detected: ${badFiles.join(', ')}. Add to .gitignore first.`);
+      }
+
+      // Git user identity check
       try {
         await gitExec(['config', 'user.name'], cwd);
         await gitExec(['config', 'user.email'], cwd);
       } catch {
-        this._postMessage({ type: 'error', text: 'Git user.name / user.email not configured. Run: git config --global user.name "Your Name"' });
-        return;
+        throw new Error('Git user.name / user.email not configured. Run: git config --global user.name "Your Name"');
       }
 
-      const now = new Date();
-      const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-      const commitMsg = `practice: save ${branch} ${ts}`;
-
       this._postMessage({ type: 'status', text: 'Adding files...' });
-      await gitExec(['add', '-A'], cwd);
+      await gitExec(['add', '--all'], cwd);
+
+      // Post-staging secret re-check
       const staged = await gitExec(['diff', '--cached', '--name-only', '-z', '--diff-filter=ACMR'], cwd);
       const stagedSecrets = checkSecretFiles(staged.split('\0').filter(Boolean));
-      if (stagedSecrets.length) throw new Error('Secret file detected in index: ' + stagedSecrets.join(', '));
+      if (stagedSecrets.length > 0) {
+        throw new Error('Secret file detected in index: ' + stagedSecrets.join(', '));
+      }
 
       this._postMessage({ type: 'status', text: 'Committing...' });
-      await gitExec(['commit', '-m', commitMsg], cwd);
-    }
-
-    // push
-    this._postMessage({ type: 'status', text: 'Pushing...' });
-    let upstreamExists = false;
-    try {
-      const trackingOut = await gitExec(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], cwd);
-      upstreamExists = !!trackingOut;
-    } catch {}
-
-    if (upstreamExists) {
-      await gitExec(['push'], cwd);
+      await gitExec(['commit', '-m', msg], cwd);
     } else {
-      await gitExec(['push', '--set-upstream', 'origin', branch], cwd);
+      // Working tree clean: check if there are unpushed commits
+      let unpushedCount = 0;
+      try {
+        const unpushed = await gitExec(['rev-list', '--count', `origin/${branch}..HEAD`], cwd);
+        unpushedCount = parseInt(unpushed, 10) || 0;
+      } catch {}
+
+      if (unpushedCount === 0 && upstream) {
+        this._postMessage({ type: 'pushOk', branch, message: 'Branch уже синхронизирован', cleanSynced: true });
+        return;
+      }
     }
 
-    // verify
-    this._postMessage({ type: 'status', text: 'Verifying...' });
+    // Explicit source/destination push
+    this._postMessage({ type: 'status', text: `Pushing to origin/${branch}...` });
+    let pushError = null;
+    try {
+      await gitExec(['push', '-u', 'origin', `${branch}:${branch}`], cwd);
+    } catch (err) {
+      pushError = err;
+    }
+
+    if (pushError) {
+      if (porcelain) {
+        throw new Error(`Commit сохранён локально, push не выполнен: ${pushError.message}`);
+      } else {
+        throw new Error(`Push не выполнен: ${pushError.message}`);
+      }
+    }
+
+    // Verify remote SHA matches local SHA
+    this._postMessage({ type: 'status', text: 'Verifying remote SHA...' });
     const localSHA = await getLocalSHA(cwd);
     const remoteSHA = await getRemoteSHA(cwd, branch);
 
     if (localSHA && remoteSHA && localSHA === remoteSHA) {
-      this._postMessage({ type: 'pushOk', branch, sha: localSHA.slice(0, 7) });
+      this._postMessage({
+        type: 'pushOk',
+        branch,
+        sha: localSHA.slice(0, 7),
+        clearInput: true,
+        message: `Успешно отправлено: origin/${branch} (${localSHA.slice(0, 7)})`,
+      });
     } else {
-      this._postMessage({ type: 'error', text: `Push verification FAILED. Local: ${localSHA?.slice(0,7)} Remote: ${remoteSHA?.slice(0,7) || 'not found'}` });
-      return;
+      throw new Error(`Push verification FAILED. Local: ${localSHA?.slice(0, 7)} Remote: ${remoteSHA?.slice(0, 7) || 'not found'}`);
     }
 
     await this._sendState();
   }
 
-  // ─── New Branch ───────────────────────────────────────────────────────────
+  // 2. NEW BRANCH: Create, Switch, and Push from Base Template
   async _handleNewBranch(name) {
-    if (typeof name !== 'string' || !name.trim()) { this._postMessage({ type: 'error', text: 'Branch name required' }); return; }
+    if (typeof name !== 'string' || !name.trim()) {
+      throw new Error('Branch name required');
+    }
     name = name.trim();
     const cwd = getWorkspaceRoot();
-    if (!cwd) { this._postMessage({ type: 'error', text: 'No workspace open' }); return; }
+    if (!cwd) throw new Error('No workspace open');
 
-    // validate branch name
+    // Git name validation
     try {
       await gitExec(['check-ref-format', '--branch', name], cwd);
     } catch {
-      this._postMessage({ type: 'error', text: `Invalid branch name: "${name}"` }); return;
+      throw new Error(`Invalid branch name: "${name}"`);
     }
 
-    // dirty check — MUST be clean before creating new branch
+    // Dirty check: must be clean to prevent carrying over practice changes
     const porcelain = await getStatus(cwd);
     if (porcelain) {
-      this._postMessage({ type: 'error', text: '⚠️ Сначала нажми Git Push для текущей ветки. Незакоммиченные изменения изолируют тебя от нового branch.' });
-      return;
-    }
-
-    // check if branch already exists locally
-    let localBranches = [];
-    try {
-      const lo = await gitExec(['branch', '--format=%(refname:short)'], cwd);
-      localBranches = lo.split('\n').map(s=>s.trim()).filter(Boolean);
-    } catch {}
-    if (localBranches.includes(name)) {
-      this._postMessage({ type: 'error', text: `Branch "${name}" already exists locally` }); return;
+      throw new Error('Рабочая директория содержит изменения. Сначала сделай Git Push или сохрани изменения.');
     }
 
     const state = await collectState(cwd);
     if (state.error) throw new Error(state.error);
     if (state.mergeInProgress || state.rebaseInProgress) throw new Error('Finish the merge/rebase first.');
     if (!state.remote) throw new Error('origin: missing');
+
     this._postMessage({ type: 'status', text: 'Fetching origin...' });
-    await gitExec(['fetch', 'origin', '--prune'], cwd);
-    const branches = await getBranches(cwd);
-    if (branches.includes(name)) throw new Error('Branch already exists: ' + name);
-    const defaultBranch = await detectDefaultBranch(cwd);
-    if (!defaultBranch) throw new Error('Cannot determine origin default branch.');
-    const baseRef = 'refs/remotes/origin/' + defaultBranch;
-    const baseSHA = await gitExec(['rev-parse', '--verify', baseRef], cwd);
-    if (localBranches.includes(defaultBranch)) {
-      try { await gitExec(['merge-base', '--is-ancestor', 'refs/heads/' + defaultBranch, baseRef], cwd); }
-      catch { throw new Error('Local default branch has unpublished or divergent commits. New Branch stopped.'); }
-      await gitExec(['switch', defaultBranch], cwd);
-    } else {
-      await gitExec(['switch', '--track', '-c', defaultBranch, 'origin/' + defaultBranch], cwd);
-    }
-    await gitExec(['pull', '--ff-only', 'origin', defaultBranch], cwd);
-    if (await getLocalSHA(cwd) !== baseSHA) throw new Error('Default branch changed during creation. Retry after checking main.');
-    await gitExec(['switch', '--no-track', '-c', name], cwd);
-
-    // push upstream
-    this._postMessage({ type: 'status', text: `Pushing upstream...` });
-    await gitExec(['push', '--set-upstream', 'origin', name], cwd);
-
-    // verify
-    const currentBranch = await getCurrentBranch(cwd);
-    if (currentBranch !== name) {
-      this._postMessage({ type: 'error', text: `Branch switch verification FAILED. Current: ${currentBranch}` }); return;
+    try {
+      await gitExec(['fetch', 'origin', '--prune'], cwd);
+    } catch (err) {
+      throw new Error(`Failed to fetch origin: ${err.message}`);
     }
 
-    // verify remote
-    const remoteSHA = await getRemoteSHA(cwd, name);
-    if (remoteSHA !== await getLocalSHA(cwd)) {
-      this._postMessage({ type: 'error', text: `Remote SHA verification failed for ${name}` }); return;
+    const branches = await getDetailedBranches(cwd, state.defaultBranch, state.branch);
+    if (branches.some(b => b.name === name)) {
+      throw new Error(`Branch "${name}" already exists locally or on origin.`);
     }
 
-    this._postMessage({ type: 'branchOk', branch: name, defaultBranch });
-    await this._sendState();
-  }
+    const defaultBranch = state.defaultBranch || 'main';
+    const baseRef = 'origin/' + defaultBranch;
 
-  // ─── Switch Branch ────────────────────────────────────────────────────────
-  async _handleSwitchBranch(name) {
-    if (typeof name !== 'string' || !name.trim()) { this._postMessage({ type: 'error', text: 'Branch name required' }); return; }
-    name = name.trim();
-    const cwd = getWorkspaceRoot();
-    if (!cwd) { this._postMessage({ type: 'error', text: 'No workspace open' }); return; }
+    this._postMessage({ type: 'status', text: `Creating branch "${name}" from ${baseRef}...` });
+    // Switch to clean branch from remote default
+    try {
+      await gitExec(['switch', '--no-track', '-c', name, baseRef], cwd);
+    } catch {
+      // Fallback if origin/default not found: local default
+      await gitExec(['switch', '--no-track', '-c', name, defaultBranch], cwd);
+    }
 
-    await gitExec(['check-ref-format', '--branch', name], cwd);
-    // merge/rebase check
-    const s = await collectState(cwd);
-    if (s.error) throw new Error(s.error);
-    if (s.mergeInProgress) { this._postMessage({ type: 'error', text: 'Merge in progress' }); return; }
-    if (s.rebaseInProgress) { this._postMessage({ type: 'error', text: 'Rebase in progress' }); return; }
+    // Initial push to origin
+    this._postMessage({ type: 'status', text: `Pushing initial branch "${name}" to origin...` });
+    let pushErr = null;
+    try {
+      await gitExec(['push', '-u', 'origin', `${name}:${name}`], cwd);
+    } catch (err) {
+      pushErr = err;
+    }
 
-    // dirty check
-    const porcelain = await getStatus(cwd);
-    if (porcelain) {
-      this._postMessage({ type: 'error', text: '⚠️ Сначала сохрани текущую ветку через Git Push.' });
+    if (pushErr) {
+      this._postMessage({
+        type: 'warn',
+        text: `Branch "${name}" создан локально и активен, но отправить на origin не удалось: ${pushErr.message}`,
+      });
+      await this._sendState();
       return;
     }
 
-    // check if branch is local
-    let localBranches = [];
-    try {
-      const lo = await gitExec(['branch', '--format=%(refname:short)'], cwd);
-      localBranches = lo.split('\n').map(s=>s.trim()).filter(Boolean);
-    } catch {}
+    // Verify remote SHA
+    const localSHA = await getLocalSHA(cwd);
+    const remoteSHA = await getRemoteSHA(cwd, name);
+    if (localSHA && remoteSHA && localSHA === remoteSHA) {
+      this._postMessage({
+        type: 'branchOk',
+        branch: name,
+        defaultBranch,
+        message: `Branch "${name}" создан от ${defaultBranch} и опубликован на origin.`,
+      });
+    } else {
+      throw new Error(`Remote SHA verification failed for "${name}".`);
+    }
 
-    if (localBranches.includes(name)) {
+    await this._sendState();
+  }
+
+  // 3. MY BRANCH: Switch branch safely
+  async _handleSwitchBranch(name) {
+    if (typeof name !== 'string' || !name.trim()) throw new Error('Branch name required');
+    name = name.trim();
+    const cwd = getWorkspaceRoot();
+    if (!cwd) throw new Error('No workspace open');
+
+    await gitExec(['check-ref-format', '--branch', name], cwd);
+
+    const s = await collectState(cwd);
+    if (s.error) throw new Error(s.error);
+    if (s.mergeInProgress || s.rebaseInProgress) throw new Error('Finish merge/rebase first');
+
+    // Dirty protection
+    const porcelain = await getStatus(cwd);
+    if (porcelain) {
+      throw new Error('Рабочая директория содержит изменения. Сначала сделай Git Push или отмени изменения перед переключением.');
+    }
+
+    const branches = await getDetailedBranches(cwd, s.defaultBranch, s.branch);
+    const target = branches.find(b => b.name === name);
+    if (!target) throw new Error(`Branch "${name}" not found`);
+
+    if (target.isLocal) {
       await gitExec(['switch', name], cwd);
     } else {
-      // create tracking branch from origin
       await gitExec(['switch', '--track', '-c', name, `origin/${name}`], cwd);
     }
 
     const currentBranch = await getCurrentBranch(cwd);
     if (currentBranch !== name) {
-      this._postMessage({ type: 'error', text: `Switch verification FAILED. Current: ${currentBranch}` }); return;
+      throw new Error(`Switch verification FAILED. Current: ${currentBranch}`);
     }
 
-    this._postMessage({ type: 'switchOk', branch: name });
+    this._postMessage({
+      type: 'switchOk',
+      branch: name,
+      message: `Переключено на "${name}". (Git Bash обновит prompt при следующем вводе)`,
+    });
+
     await this._sendState();
   }
 
-  // ─── HTML Webview ─────────────────────────────────────────────────────────
+  // 4. DELETE BRANCH: Delete selected branches with safety checks
+  async _handleDeleteBranches(branchesToDelete) {
+    if (!Array.isArray(branchesToDelete) || branchesToDelete.length === 0) {
+      throw new Error('Не выбраны ветки для удаления.');
+    }
+
+    const cwd = getWorkspaceRoot();
+    if (!cwd) throw new Error('No workspace open');
+
+    const s = await collectState(cwd);
+    if (s.error) throw new Error(s.error);
+    if (s.status) {
+      throw new Error('Рабочая директория содержит изменения. Сначала сделай Git Push или отмени изменения.');
+    }
+
+    const defaultBranch = s.defaultBranch || 'main';
+    const forbidden = new Set(['main', 'master', defaultBranch, s.branch].filter(Boolean));
+
+    for (const b of branchesToDelete) {
+      if (forbidden.has(b)) {
+        throw new Error(`Ветку "${b}" удалять запрещено (защищённая или текущая ветка).`);
+      }
+    }
+
+    // Confirmation 1: Overview confirmation
+    const targetsDescription = branchesToDelete.join(', ');
+    const confirm = await vscode.window.showWarningMessage(
+      `Вы точно хотите удалить следующие ветки: ${targetsDescription}?`,
+      { modal: true },
+      'Удалить',
+      'Отмена'
+    );
+    if (confirm !== 'Удалить') {
+      this._postMessage({ type: 'status', text: 'Удаление отменено.' });
+      return;
+    }
+
+    // Check unmerged commits for each branch
+    const forceApproved = new Set();
+    for (const b of branchesToDelete) {
+      const unmerged = await countUnmergedCommits(cwd, b, defaultBranch);
+      if (unmerged > 0) {
+        const forceChoice = await vscode.window.showWarningMessage(
+          `Ветка "${b}" содержит ${unmerged} уникальных коммитов, не слитых в ${defaultBranch}. Удалить принудительно с потерей коммитов?`,
+          { modal: true },
+          'Удалить принудительно',
+          'Пропустить'
+        );
+        if (forceChoice === 'Удалить принудительно') {
+          forceApproved.add(b);
+        } else {
+          // Skip this branch
+          branchesToDelete = branchesToDelete.filter(item => item !== b);
+        }
+      }
+    }
+
+    if (branchesToDelete.length === 0) {
+      this._postMessage({ type: 'status', text: 'Удаление отменено пользователем.' });
+      return;
+    }
+
+    const deleted = [];
+    const failed = [];
+
+    for (const b of branchesToDelete) {
+      let bSuccess = true;
+      let errMsgs = [];
+
+      // 1. Delete local branch if exists
+      try {
+        const flag = forceApproved.has(b) ? '-D' : '-d';
+        await gitExec(['branch', flag, b], cwd);
+      } catch (err) {
+        // Maybe it's remote-only
+        if (!err.message.includes('not found')) {
+          errMsgs.push(`local: ${err.message}`);
+          bSuccess = false;
+        }
+      }
+
+      // 2. Delete remote branch on origin if exists
+      try {
+        await gitExec(['push', 'origin', '--delete', b], cwd);
+      } catch (err) {
+        // Maybe it was local-only
+        if (!err.message.includes('remote ref does not exist')) {
+          errMsgs.push(`remote: ${err.message}`);
+          bSuccess = false;
+        }
+      }
+
+      if (bSuccess) {
+        deleted.push(b);
+      } else {
+        failed.push({ name: b, error: errMsgs.join(', ') });
+      }
+    }
+
+    // Fetch prune
+    try { await gitExec(['fetch', 'origin', '--prune'], cwd); } catch {}
+
+    if (failed.length === 0) {
+      this._postMessage({
+        type: 'deleteOk',
+        message: `Успешно удалены ветки: ${deleted.join(', ')}`,
+      });
+    } else {
+      this._postMessage({
+        type: 'deletePartial',
+        message: `Удалено: ${deleted.join(', ') || 'нет'}. Ошибки: ${failed.map(f => `${f.name} (${f.error})`).join('; ')}`,
+      });
+    }
+
+    await this._sendState();
+  }
+
   _getHtml() {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -458,54 +733,152 @@ class GithubPanelProvider {
     font-size: var(--vscode-font-size, 13px);
     color: var(--vscode-foreground);
     background: var(--vscode-sideBar-background, transparent);
-    padding: 8px 10px 12px;
+    padding: 6px 8px 14px;
     user-select: none;
+    overflow-y: auto;
   }
 
-  .section { margin-bottom: 10px; }
+  .block {
+    margin-bottom: 8px;
+    border: 1px solid var(--vscode-sideBarSectionHeader-border, rgba(128,128,128,0.2));
+    border-radius: 4px;
+    background: var(--vscode-sideBar-background, transparent);
+    overflow: hidden;
+  }
 
-  .label {
-    font-size: 10px;
+  .block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    background: var(--vscode-sideBarSectionHeader-background, rgba(255,255,255,0.03));
+    cursor: pointer;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: var(--vscode-sideBarSectionHeader-foreground, var(--vscode-descriptionForeground));
-    margin-bottom: 4px;
+    color: var(--vscode-sideBarSectionHeader-foreground, var(--vscode-foreground));
   }
 
-  .info-block {
+  .block-header:hover {
+    background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.06));
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chevron {
+    font-size: 9px;
+    display: inline-block;
+    transition: transform 0.15s ease;
+  }
+
+  .block-content {
+    padding: 8px;
+    background: var(--vscode-sideBar-background, transparent);
+  }
+
+  .info-box {
     background: var(--vscode-input-background);
     border: 1px solid var(--vscode-input-border, transparent);
-    border-radius: 4px;
+    border-radius: 3px;
     padding: 6px 8px;
     font-size: 12px;
-    line-height: 1.5;
+    line-height: 1.4;
+    margin-bottom: 6px;
   }
 
   .branch-name {
     font-weight: 600;
     color: var(--vscode-textLink-foreground, #4ec9b0);
+    word-break: break-all;
   }
 
-  .remote-status {
+  .sub-text {
     color: var(--vscode-descriptionForeground);
     font-size: 11px;
+    margin-top: 2px;
   }
 
-  .clean-badge {
-    color: #4caf50;
-    font-size: 11px;
-  }
-
-  .dirty-badge {
+  .clean-badge { color: #4caf50; font-size: 11px; font-weight: 500; }
+  .dirty-badge { color: var(--vscode-editorWarning-foreground, #f0c040); font-size: 11px; font-weight: 500; }
+  .protected-warning {
     color: var(--vscode-editorWarning-foreground, #f0c040);
     font-size: 11px;
+    margin-top: 4px;
+    line-height: 1.3;
+  }
+
+  .field-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--vscode-descriptionForeground);
+    margin: 6px 0 3px;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 5px 7px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, #3c3c3c);
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+    resize: vertical;
+    min-height: 48px;
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
+  }
+
+  textarea:focus { border-color: var(--vscode-focusBorder, #007acc); }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 5px 7px;
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, #3c3c3c);
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
+  }
+
+  input[type="text"]:focus { border-color: var(--vscode-focusBorder, #007acc); }
+
+  select {
+    width: 100%;
+    padding: 5px 7px;
+    background: var(--vscode-dropdown-background, var(--vscode-input-background));
+    color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
+    border: 1px solid var(--vscode-dropdown-border, #3c3c3c);
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .hint-text {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    margin-top: 4px;
+    line-height: 1.3;
   }
 
   .btn {
     display: block;
     width: 100%;
-    padding: 5px 10px;
+    padding: 6px 10px;
     margin-top: 6px;
     border: none;
     border-radius: 3px;
@@ -517,7 +890,6 @@ class GithubPanelProvider {
   }
 
   .btn:hover { filter: brightness(1.15); }
-  .btn:active { filter: brightness(0.9); }
   .btn:disabled { opacity: 0.45; cursor: default; filter: none; }
 
   .btn-primary {
@@ -530,126 +902,200 @@ class GithubPanelProvider {
     color: var(--vscode-button-secondaryForeground, #cccccc);
   }
 
-  input[type="text"] {
-    width: 100%;
-    padding: 4px 7px;
+  .btn-danger {
+    background: var(--vscode-errorForeground, #f44336);
+    color: #ffffff;
+  }
+
+  /* Delete branches checklist */
+  .branch-checklist {
+    max-height: 130px;
+    overflow-y: auto;
+    border: 1px solid var(--vscode-input-border, rgba(128,128,128,0.2));
+    border-radius: 3px;
+    padding: 4px;
     background: var(--vscode-input-background);
-    color: var(--vscode-input-foreground);
-    border: 1px solid var(--vscode-input-border, #3c3c3c);
-    border-radius: 3px;
-    font-family: inherit;
-    font-size: 12px;
-    outline: none;
     margin-top: 4px;
   }
 
-  input[type="text"]:focus {
-    border-color: var(--vscode-focusBorder, #007acc);
-  }
-
-  select {
-    width: 100%;
-    padding: 4px 7px;
-    background: var(--vscode-dropdown-background, var(--vscode-input-background));
-    color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
-    border: 1px solid var(--vscode-dropdown-border, #3c3c3c);
-    border-radius: 3px;
-    font-family: inherit;
-    font-size: 12px;
-    outline: none;
-    margin-top: 4px;
-    cursor: pointer;
-  }
-
-  select:focus { border-color: var(--vscode-focusBorder, #007acc); }
-
-  .status-msg {
+  .branch-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px;
     font-size: 11px;
-    padding: 4px 6px;
+    border-radius: 2px;
+  }
+
+  .branch-item:hover {
+    background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.05));
+  }
+
+  .badge {
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    background: rgba(128,128,128,0.2);
+    color: var(--vscode-descriptionForeground);
+    margin-left: auto;
+  }
+
+  /* Status feedback bar */
+  .status-bar {
+    font-size: 11px;
+    padding: 6px 8px;
     border-radius: 3px;
-    margin-top: 6px;
+    margin-top: 8px;
     line-height: 1.4;
-  }
-
-  .status-ok {
-    background: rgba(76,175,80,0.12);
-    color: #4caf50;
-    border-left: 2px solid #4caf50;
-  }
-
-  .status-err {
-    background: rgba(244,67,54,0.12);
-    color: var(--vscode-editorError-foreground, #f44336);
-    border-left: 2px solid var(--vscode-editorError-foreground, #f44336);
+    display: none;
     word-break: break-word;
   }
 
+  .status-ok {
+    background: rgba(76,175,80,0.14);
+    color: #4caf50;
+    border-left: 3px solid #4caf50;
+  }
+
+  .status-warn {
+    background: rgba(255,152,0,0.14);
+    color: var(--vscode-editorWarning-foreground, #ff9800);
+    border-left: 3px solid #ff9800;
+  }
+
+  .status-err {
+    background: rgba(244,67,54,0.14);
+    color: var(--vscode-editorError-foreground, #f44336);
+    border-left: 3px solid #f44336;
+  }
+
   .status-info {
-    background: rgba(100,100,100,0.12);
-    color: var(--vscode-descriptionForeground);
-    border-left: 2px solid var(--vscode-descriptionForeground);
+    background: rgba(100,100,100,0.14);
+    color: var(--vscode-foreground);
+    border-left: 3px solid var(--vscode-descriptionForeground);
   }
-
-  .divider {
-    height: 1px;
-    background: var(--vscode-sideBarSectionHeader-border, rgba(128,128,128,0.2));
-    margin: 10px 0;
-  }
-
-  #statusMsg { display: none; }
 </style>
 </head>
 <body>
 
-<!-- Current Info -->
-<div class="section">
-  <div class="label">Current</div>
-  <div class="info-block">
-    <div class="branch-name" id="branchName">—</div>
-    <div class="remote-status" id="remoteStatus">loading...</div>
-    <div id="cleanBadge" class="clean-badge" style="display:none">✓ Clean</div>
-    <div id="dirtyBadge" class="dirty-badge" style="display:none">● Changes</div>
+<!-- 1. CURRENT BLOCK -->
+<div class="block" id="blockCurrent">
+  <div class="block-header" onclick="toggleBlock('current')">
+    <div class="header-left">
+      <span class="chevron" id="chevronCurrent">▼</span>
+      <span>Current</span>
+    </div>
+  </div>
+  <div class="block-content" id="contentCurrent" onclick="event.stopPropagation()">
+    <div class="info-box">
+      <div class="branch-name" id="branchName">—</div>
+      <div class="sub-text" id="remoteStatus">loading...</div>
+      <div id="cleanBadge" class="clean-badge" style="display:none">✓ Clean</div>
+      <div id="dirtyBadge" class="dirty-badge" style="display:none">● Changes</div>
+      <div id="protectedWarning" class="protected-warning" style="display:none">
+        Внимание: базовый branch (main/master). При Git Push потребуется подтверждение.
+      </div>
+    </div>
+
+    <div id="pushControls">
+      <div class="field-label">Commit message</div>
+      <textarea id="commitInput" placeholder="Например: add login form" rows="2" onkeydown="if(event.ctrlKey && event.key==='Enter') doPush()"></textarea>
+      <button class="btn btn-primary" id="pushBtn" onclick="doPush()">Git Push</button>
+    </div>
   </div>
 </div>
 
-<!-- Git Push -->
-<div class="section">
-  <button class="btn btn-primary" id="pushBtn" onclick="doPush()">Git Push</button>
+<!-- 2. NEW BRANCH BLOCK -->
+<div class="block" id="blockNewBranch">
+  <div class="block-header" onclick="toggleBlock('newBranch')">
+    <div class="header-left">
+      <span class="chevron" id="chevronNewBranch">▶</span>
+      <span>New Branch</span>
+    </div>
+  </div>
+  <div class="block-content" id="contentNewBranch" style="display:none" onclick="event.stopPropagation()">
+    <input type="text" id="newBranchInput" placeholder="day-2" onkeydown="if(event.key==='Enter') doNewBranch()" />
+    <button class="btn btn-secondary" id="newBranchBtn" onclick="doNewBranch()">Create & Push</button>
+    <div class="hint-text">Новый branch создаётся из базового шаблона</div>
+  </div>
 </div>
 
-<div class="divider"></div>
-
-<!-- New Branch -->
-<div class="section">
-  <div class="label">Branch name</div>
-  <input type="text" id="newBranchInput" placeholder="day-2" />
-  <button class="btn btn-secondary" id="newBranchBtn" onclick="doNewBranch()" style="margin-top:6px">New Branch</button>
+<!-- 3. MY BRANCH BLOCK -->
+<div class="block" id="blockMyBranch">
+  <div class="block-header" onclick="toggleBlock('myBranch')">
+    <div class="header-left">
+      <span class="chevron" id="chevronMyBranch">▶</span>
+      <span>My Branch</span>
+    </div>
+  </div>
+  <div class="block-content" id="contentMyBranch" style="display:none" onclick="event.stopPropagation()">
+    <select id="branchSelect" onchange="doSwitchBranch(this.value)"></select>
+  </div>
 </div>
 
-<div class="divider"></div>
-
-<!-- My Branch -->
-<div class="section">
-  <div class="label">My Branch</div>
-  <select id="branchSelect" onchange="doSwitchBranch(this.value)"></select>
+<!-- 4. DELETE BRANCH BLOCK -->
+<div class="block" id="blockDeleteBranch">
+  <div class="block-header" onclick="toggleBlock('deleteBranch')">
+    <div class="header-left">
+      <span class="chevron" id="chevronDeleteBranch">▶</span>
+      <span>Delete Branch</span>
+    </div>
+  </div>
+  <div class="block-content" id="contentDeleteBranch" style="display:none" onclick="event.stopPropagation()">
+    <div class="branch-checklist" id="deleteChecklist">
+      <div style="font-size:11px;color:var(--vscode-descriptionForeground);padding:4px;">Нет доступных веток</div>
+    </div>
+    <button class="btn btn-danger" id="deleteBtn" disabled onclick="doDeleteBranches()">Delete selected</button>
+  </div>
 </div>
 
-<!-- Status message -->
-<div class="status-msg" id="statusMsg"></div>
+<!-- Status Message -->
+<div class="status-bar" id="statusBar"></div>
 
 <script>
 const vscode = acquireVsCodeApi();
 let currentBranch = null;
 let busy = false;
+let allBranches = [];
 
-function post(command, extra) {
-  vscode.postMessage(Object.assign({ command }, extra));
+const blockStates = {
+  current: true,
+  newBranch: false,
+  myBranch: false,
+  deleteBranch: false,
+};
+
+function toggleBlock(id) {
+  blockStates[id] = !blockStates[id];
+  renderBlockStates();
+}
+
+function renderBlockStates() {
+  const map = {
+    current: { content: 'contentCurrent', chevron: 'chevronCurrent' },
+    newBranch: { content: 'contentNewBranch', chevron: 'chevronNewBranch' },
+    myBranch: { content: 'contentMyBranch', chevron: 'chevronMyBranch' },
+    deleteBranch: { content: 'contentDeleteBranch', chevron: 'chevronDeleteBranch' },
+  };
+
+  for (const [key, item] of Object.entries(map)) {
+    const el = document.getElementById(item.content);
+    const ch = document.getElementById(item.chevron);
+    if (el && ch) {
+      el.style.display = blockStates[key] ? 'block' : 'none';
+      ch.textContent = blockStates[key] ? '▼' : '▶';
+    }
+  }
 }
 
 function setStatus(text, type) {
-  const el = document.getElementById('statusMsg');
+  const el = document.getElementById('statusBar');
+  if (!text) {
+    el.style.display = 'none';
+    return;
+  }
   el.style.display = 'block';
-  el.className = 'status-msg status-' + type;
+  el.className = 'status-bar status-' + type;
   el.textContent = text;
 }
 
@@ -658,42 +1104,70 @@ function setBusy(val) {
   document.getElementById('pushBtn').disabled = val;
   document.getElementById('newBranchBtn').disabled = val;
   document.getElementById('branchSelect').disabled = val;
+  document.getElementById('newBranchInput').disabled = val;
+  document.getElementById('commitInput').disabled = val;
+  updateDeleteBtnState();
+}
+
+function updateDeleteBtnState() {
+  const checkboxes = document.querySelectorAll('#deleteChecklist input[type="checkbox"]:checked');
+  const btn = document.getElementById('deleteBtn');
+  btn.disabled = busy || checkboxes.length === 0;
+  btn.textContent = checkboxes.length > 0 ? ('Delete selected (' + checkboxes.length + ')') : 'Delete selected';
 }
 
 function doPush() {
   if (busy) return;
+  const msg = document.getElementById('commitInput').value;
   setBusy(true);
   setStatus('Starting push...', 'info');
-  post('push');
+  vscode.postMessage({ command: 'push', commitMessage: msg });
 }
 
 function doNewBranch() {
   if (busy) return;
   const name = document.getElementById('newBranchInput').value.trim();
-  if (!name) { setStatus('Enter branch name', 'err'); return; }
+  if (!name) {
+    setStatus('Enter branch name', 'err');
+    return;
+  }
   setBusy(true);
-  setStatus('Creating branch...', 'info');
-  post('newBranch', { name });
+  setStatus('Creating branch from template...', 'info');
+  vscode.postMessage({ command: 'newBranch', name });
 }
 
 function doSwitchBranch(name) {
   if (busy || !name || name === currentBranch) return;
   setBusy(true);
-  setStatus('Switching branch...', 'info');
-  post('switchBranch', { name });
+  setStatus('Switching to ' + name + '...', 'info');
+  vscode.postMessage({ command: 'switchBranch', name });
+}
+
+function doDeleteBranches() {
+  if (busy) return;
+  const checked = Array.from(document.querySelectorAll('#deleteChecklist input[type="checkbox"]:checked'))
+    .map(cb => cb.dataset.branch);
+
+  if (checked.length === 0) return;
+  setBusy(true);
+  setStatus('Preparing deletion...', 'info');
+  vscode.postMessage({ command: 'deleteBranches', branches: checked });
 }
 
 function applyState(state, branches) {
   setBusy(Boolean(state.busy));
   currentBranch = state.branch;
+  allBranches = branches || [];
 
   if (state.error) {
-    setBusy(true);
     document.getElementById('branchName').textContent = '—';
     document.getElementById('remoteStatus').textContent = state.error;
     document.getElementById('cleanBadge').style.display = 'none';
     document.getElementById('dirtyBadge').style.display = 'none';
+    document.getElementById('protectedWarning').style.display = 'none';
+    document.getElementById('pushBtn').disabled = true;
     updateBranchSelect([], null);
+    updateDeleteList([], null);
     return;
   }
 
@@ -705,114 +1179,173 @@ function applyState(state, branches) {
   document.getElementById('cleanBadge').style.display = state.isClean ? '' : 'none';
   document.getElementById('dirtyBadge').style.display = state.isClean ? 'none' : '';
 
+  // Protected branch handling
+  if (state.isProtected) {
+    document.getElementById('protectedWarning').style.display = 'block';
+  } else {
+    document.getElementById('protectedWarning').style.display = 'none';
+  }
+
+  document.getElementById('pushBtn').disabled = busy;
+  document.getElementById('commitInput').disabled = busy;
+
   updateBranchSelect(branches, state.branch);
+  updateDeleteList(branches, state.branch);
+  renderBlockStates();
 }
 
 function updateBranchSelect(branches, current) {
-  const sel = document.getElementById('branchSelect');
-  const prev = sel.value;
-  sel.innerHTML = '';
+  const select = document.getElementById('branchSelect');
+  select.innerHTML = '';
+
   if (!branches || branches.length === 0) {
     const opt = document.createElement('option');
-    opt.textContent = current || '—';
-    opt.value = current || '';
-    sel.appendChild(opt);
+    opt.value = '';
+    opt.textContent = 'No branches';
+    select.appendChild(opt);
     return;
   }
-  branches.forEach(b => {
+
+  for (const b of branches) {
     const opt = document.createElement('option');
-    opt.value = b;
-    opt.textContent = b;
-    if (b === current) opt.selected = true;
-    sel.appendChild(opt);
-  });
+    opt.value = b.name;
+    opt.textContent = b.name + ' (' + b.location + ')';
+    if (b.name === current) {
+      opt.selected = true;
+    }
+    select.appendChild(opt);
+  }
 }
 
-window.addEventListener('message', ev => {
-  const msg = ev.data;
+function updateDeleteList(branches, current) {
+  const container = document.getElementById('deleteChecklist');
+  container.innerHTML = '';
+
+  const deletable = (branches || []).filter(b => !b.isProtected && b.name !== current);
+
+  if (deletable.length === 0) {
+    container.innerHTML = '<div style="font-size:11px;color:var(--vscode-descriptionForeground);padding:4px;">Нет веток для удаления</div>';
+    updateDeleteBtnState();
+    return;
+  }
+
+  for (const b of deletable) {
+    const row = document.createElement('div');
+    row.className = 'branch-item';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.dataset.branch = b.name;
+    cb.onchange = updateDeleteBtnState;
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = b.name;
+
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = b.location;
+
+    row.appendChild(cb);
+    row.appendChild(nameSpan);
+    row.appendChild(badge);
+    container.appendChild(row);
+  }
+
+  updateDeleteBtnState();
+}
+
+// Receive messages from extension host
+window.addEventListener('message', event => {
+  const msg = event.data;
+  if (!msg) return;
+
   switch (msg.type) {
     case 'state':
       applyState(msg.state, msg.branches);
       break;
+
     case 'status':
       setStatus(msg.text, 'info');
       break;
+
     case 'pushOk':
-      setStatus('✓ Pushed · ' + msg.branch + ' · ' + msg.sha, 'ok');
-      setBusy(false);
+      setStatus(msg.message || ('Pushed ' + msg.branch + ' (' + (msg.sha || '') + ')'), 'ok');
+      if (msg.clearInput) {
+        document.getElementById('commitInput').value = '';
+      }
       break;
+
     case 'branchOk':
-      setStatus('✓ Branch ' + msg.branch + ' created from ' + msg.defaultBranch, 'ok');
+      setStatus(msg.message || ('Created and pushed: ' + msg.branch), 'ok');
       document.getElementById('newBranchInput').value = '';
-      setBusy(false);
       break;
+
     case 'switchOk':
-      setStatus('✓ Switched to ' + msg.branch, 'ok');
-      setBusy(false);
+      setStatus(msg.message || ('Switched to: ' + msg.branch), 'ok');
       break;
+
+    case 'deleteOk':
+      setStatus(msg.message, 'ok');
+      break;
+
+    case 'deletePartial':
+      setStatus(msg.message, 'warn');
+      break;
+
+    case 'warn':
+      setStatus(msg.text, 'warn');
+      break;
+
     case 'error':
       setStatus(msg.text, 'err');
-      setBusy(false);
       break;
   }
 });
 
-// init
-post('init');
-
-// Refresh on focus; Git commands also refresh their result.
-window.addEventListener('focus', () => { if (!busy) post('refresh'); });
+// Initialization
+vscode.postMessage({ command: 'init' });
+renderBlockStates();
 </script>
 </body>
 </html>`;
   }
 }
 
-// ─── Activate ─────────────────────────────────────────────────────────────────
-
 function activate(context) {
-  log('mansur-github-panel 1.1.0 activating...');
-
-  if (!outputChannel) {
-    outputChannel = vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
-  }
-
+  log('MANSUR GITHUB PANEL ACTIVATING');
   panelProvider = new GithubPanelProvider();
 
-  const providerReg = vscode.window.registerWebviewViewProvider(
-    PANEL_ID,
-    panelProvider,
-    { webviewOptions: { retainContextWhenHidden: true } }
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(PANEL_ID, panelProvider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    })
   );
-  context.subscriptions.push(providerReg);
-  disposables.push(providerReg);
 
-  // команда обновления
-  const refreshCmd = vscode.commands.registerCommand('mansurGithubPanel.refresh', () => {
-    panelProvider.refresh();
-  });
-  context.subscriptions.push(refreshCmd);
-  disposables.push(refreshCmd);
+  context.subscriptions.push(
+    vscode.commands.registerCommand('mansurGithubPanel.refresh', () => {
+      if (panelProvider) panelProvider.refresh();
+    })
+  );
 
-  // авто-обновление при смене workspace/editor
-  const wsChange = vscode.workspace.onDidChangeWorkspaceFolders(() => panelProvider.refresh());
-  context.subscriptions.push(wsChange);
-  disposables.push(wsChange);
-
-  const editorChange = vscode.window.onDidChangeActiveTextEditor(() => panelProvider.refresh());
-  context.subscriptions.push(editorChange);
-  disposables.push(editorChange);
-
-  log('mansur-github-panel 1.1.0 activated.');
+  log('MANSUR GITHUB PANEL ACTIVATED');
 }
 
 function deactivate() {
-  log('mansur-github-panel deactivated.');
+  panelProvider = null;
   for (const d of disposables) {
-    try { d.dispose(); } catch {}
+    try { d.dispose(); } catch (_) {}
   }
   disposables = [];
-  if (outputChannel) { outputChannel.dispose(); outputChannel = null; }
 }
 
-module.exports = { activate, deactivate };
+module.exports = {
+  activate,
+  deactivate,
+  GithubPanelProvider,
+  collectState,
+  getDetailedBranches,
+  detectDefaultBranch,
+  checkSecretFiles,
+  countUnmergedCommits,
+  gitExec,
+};
