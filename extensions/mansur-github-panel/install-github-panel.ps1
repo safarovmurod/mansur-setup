@@ -1,0 +1,65 @@
+#Requires -Version 5.1
+Set-StrictMode -Version Latest
+$ErrorActionPreference='Stop'
+$source=$PSScriptRoot
+$cli=(Get-Command antigravity-ide.cmd -ErrorAction SilentlyContinue).Source
+if (-not $cli) { $cli=Join-Path $env:LOCALAPPDATA 'Programs\Antigravity IDE\bin\antigravity-ide.cmd' }
+if (-not (Test-Path -LiteralPath $cli)) { throw 'Antigravity IDE CLI not found' }
+$ideRoot=Split-Path (Split-Path $cli -Parent) -Parent
+$product=Get-Content -LiteralPath (Join-Path $ideRoot 'resources\app\product.json') -Raw | ConvertFrom-Json
+$extensionRoot=Join-Path $env:USERPROFILE ($product.dataFolderName+'\extensions')
+$manifest=Get-Content -LiteralPath (Join-Path $source 'package.json') -Raw | ConvertFrom-Json
+$id=$manifest.publisher+'.'+$manifest.name
+$installed=Join-Path $extensionRoot ($id+'-'+$manifest.version)
+function Test-PanelFile { param([string]$Name)
+  $target=Join-Path $installed $Name
+  if(-not (Test-Path -LiteralPath $target)){return $false}
+  if($Name -eq 'package.json'){
+    $actual=Get-Content -LiteralPath $target -Raw | ConvertFrom-Json
+    $actual.PSObject.Properties.Remove('__metadata')
+    return (($actual | ConvertTo-Json -Depth 30 -Compress) -eq ($manifest | ConvertTo-Json -Depth 30 -Compress))
+  }
+  return ((Get-FileHash -LiteralPath $target).Hash -eq (Get-FileHash -LiteralPath (Join-Path $source $Name)).Hash)
+}
+$listed=& $cli --list-extensions --show-versions 2>$null
+$same=$listed -contains ($id+'@'+$manifest.version)
+foreach($name in @('package.json','extension.js')) {
+  $target=Join-Path $installed $name
+  if (-not (Test-PanelFile $name)) { $same=$false }
+}
+if($same){Write-Output ('VERIFIED: already installed '+$id+'@'+$manifest.version+' in '+$extensionRoot);exit 0}
+$backup=Join-Path $env:USERPROFILE ('.gemini\backups\github-panel-install-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
+New-Item -ItemType Directory -Path $backup -Force | Out-Null
+if(Test-Path -LiteralPath $extensionRoot){Get-ChildItem -LiteralPath $extensionRoot -Directory | Where-Object {$_.Name -like ($id+'-*')} | ForEach-Object {Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $backup $_.Name) -Recurse}}
+function New-PanelVsix {
+param([Parameter(Mandatory=$true)][string]$Source,[Parameter(Mandatory=$true)][string]$Output)
+$ErrorActionPreference='Stop'
+Add-Type -AssemblyName System.IO.Compression
+$manifest=Get-Content -LiteralPath (Join-Path $Source 'package.json') -Raw | ConvertFrom-Json
+$identity="$($manifest.publisher).$($manifest.name)"
+$vsix=@"
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011"><Metadata><Identity Language="en-US" Id="$identity" Version="$($manifest.version)" Publisher="$($manifest.publisher)"/><DisplayName>$($manifest.displayName)</DisplayName><Description xml:space="preserve">Antigravity Explorer extension</Description><Tags></Tags><Categories>Other</Categories><GalleryFlags>Public</GalleryFlags><Properties><Property Id="Microsoft.VisualStudio.Code.Engine" Value="$($manifest.engines.vscode)"/><Property Id="Microsoft.VisualStudio.Code.ExtensionDependencies" Value=""/><Property Id="Microsoft.VisualStudio.Code.ExtensionPack" Value=""/></Properties></Metadata><Installation><InstallationTarget Id="Microsoft.VisualStudio.Code"/></Installation><Dependencies/><Assets><Asset Type="Microsoft.VisualStudio.Code.Manifest" Path="extension/package.json" Addressable="true"/></Assets></PackageManifest>
+"@
+$types='<?xml version="1.0" encoding="utf-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="json" ContentType="application/json"/><Default Extension="js" ContentType="application/javascript"/><Default Extension="vsixmanifest" ContentType="text/xml"/></Types>'
+$stream=[System.IO.File]::Open($Output,[System.IO.FileMode]::Create)
+$zip=[System.IO.Compression.ZipArchive]::new($stream,[System.IO.Compression.ZipArchiveMode]::Create)
+try {
+  $entries=@{'extension.vsixmanifest'=$vsix;'[Content_Types].xml'=$types;'extension/package.json'=(Get-Content -LiteralPath (Join-Path $Source 'package.json') -Raw);'extension/extension.js'=(Get-Content -LiteralPath (Join-Path $Source 'extension.js') -Raw)}
+  foreach($name in $entries.Keys){$entry=$zip.CreateEntry($name);$writer=[System.IO.StreamWriter]::new($entry.Open(),[System.Text.UTF8Encoding]::new($false));try{$writer.Write($entries[$name])}finally{$writer.Dispose()}}
+} finally {$zip.Dispose();$stream.Dispose()}
+Write-Output $Output
+
+}
+$archive=Join-Path $backup ($manifest.name+'-'+$manifest.version+'.vsix')
+New-PanelVsix -Source $source -Output $archive
+& $cli --install-extension $archive --force
+$installExit=$LASTEXITCODE
+$listed=& $cli --list-extensions --show-versions 2>$null
+if($listed -notcontains ($id+'@'+$manifest.version)){throw 'CLI did not register the expected extension version'}
+foreach($name in @('package.json','extension.js')) {
+  if(-not (Test-PanelFile $name)){throw ('Installed file mismatch: '+$name)}
+}
+if($installExit -ne 0){Write-Warning ('CLI exited '+$installExit+' after installing; registration and both file hashes verified separately.')}
+Write-Output ('VERIFIED: '+$id+'@'+$manifest.version+' in '+$extensionRoot)
+Write-Output ('Backup: '+$backup)
