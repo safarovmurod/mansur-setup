@@ -1,4 +1,4 @@
-# mansur-antigravity-setup
+# mansur-setup
 
 > Готовая, переносимая и автоматизированная среда разработки для **Antigravity IDE** на Windows: нативный плавный курсор, Prettier, Tailwind CSS, Material Icons, панель GitHub Explorer, движок практики React/TypeScript, MCP-серверы и персональные правила AI-ассистента.
 
@@ -30,7 +30,8 @@
 4. **Обучающий движок и правила AI (Practice System):**
    - Глобальный скрипт `practice-engine.mjs` (`practice:new`, `practice:save`, `practice:open`).
    - Автоматическая активация режима практики для веток `day1`, `redux-practice`, `learn-hooks` и др.
-   - Терпеливый пошаговый стиль объяснения (1 шаг за 1 сообщение) и строгий TypeScript-стек.
+   - Терпеливый пошаговый стиль объяснения (1 шаг за 1 сообщение), разговорная речь Душанбе и обновлённый `mansur-frontend-mentor`.
+   - Новый пример по умолчанию JSX + MUI; существующий или явно выбранный TypeScript/Tailwind сохраняется. Zustand, Redux Toolkit и Jotai изучаются отдельно, локально и с API.
 5. **Model Context Protocol (MCP):**
    - Готовые безопасные шаблоны подключения **GitHub MCP Server** (через Docker), **GSD** и **Sequential Thinking**.
 
@@ -55,25 +56,25 @@
 Откройте терминал (PowerShell или CMD) и выполните **одну проверенную команду**:
 
 ```bash
-npx github:safarovmurod/mansur-antigravity-setup install
+npx --yes github:safarovmurod/mansur-setup install
 ```
 
 Либо укажите своё имя для персонального обращения AI:
 ```bash
-npx github:safarovmurod/mansur-antigravity-setup install --name "Мансур"
+npx --yes github:safarovmurod/mansur-setup install --name "Мансур"
 ```
 
 #### Альтернатива (через локальное клонирование):
 ```bash
-git clone https://github.com/safarovmurod/mansur-antigravity-setup.git
-cd mansur-antigravity-setup
+git clone https://github.com/safarovmurod/mansur-setup.git
+cd mansur-setup
 npm run install-setup
 ```
 
 Инсталлятор автоматически:
 - Создаст резервную копию существующих настроек в `~/.gemini/backups/`.
 - Корректно объединит `settings.json`, `keybindings.json` и `argv.json` без стирания ваших сторонних настроек.
-- Установит глобальные правила AI и скиллы (`mansur-practice`, `vercel-react-best-practices`).
+- Установит глобальные правила AI и скиллы (`mansur-frontend-mentor`, `mansur-practice`, `vercel-react-best-practices`).
 - Установит кастомную панель `mansur-github-panel` и зарегистрирует 22 расширения.
 
 ---
@@ -96,7 +97,7 @@ npm run install-setup
 Чтобы убедиться, что все пути, настройки, расширения и правила работают корректно, запустите:
 
 ```bash
-npx github:safarovmurod/mansur-antigravity-setup doctor
+npx --yes github:safarovmurod/mansur-setup doctor
 ```
 
 или локально:
@@ -112,11 +113,11 @@ npm run doctor
 
 - **Создать бэкап вручную:**
   ```bash
-  npx github:safarovmurod/mansur-antigravity-setup backup
+  npx --yes github:safarovmurod/mansur-setup backup
   ```
 - **Восстановить последнее состояние:**
   ```bash
-  npx github:safarovmurod/mansur-antigravity-setup restore
+  npx --yes github:safarovmurod/mansur-setup restore
   ```
 
 ---
@@ -153,3 +154,16 @@ MIT License (c) 2026 Mansur.
 ## Обновлённый frontend mentor
 
 Речь, beginner-код, Zustand/Redux/Jotai local/global и честная проверка: [инструкция и границы обновления](docs/MANSUR-MENTOR-UPDATE.md). Для точечного обновления без общего IDE installer: `node scripts/install-mentor-skill.cjs --dry-run`, затем `node scripts/install-mentor-skill.cjs`.
+
+Обновить только mentor глобально из GitHub, без повторной установки тем/расширений/MCP:
+
+```bash
+npx --yes github:safarovmurod/mansur-setup mentor --dry-run
+npx --yes github:safarovmurod/mansur-setup mentor
+```
+
+В уже клонированной папке сначала `git pull --ff-only`, затем `node scripts/install-mentor-skill.cjs`.
+`changed: []` означает, что текущие исходники уже установлены; новые правила попадут глобально после обновления копии репозитория.
+Автоматический фоновый watcher/commit/push не включается. Для переноса новых предпочтений сначала обновляются `skills/mansur-frontend-mentor` и связанные templates, затем install/проверка и выбранный Git commit/push.
+
+Полный IDE setup рассчитан на Windows. Mentor использует домашнюю папку пользователя; профиль Antigravity должен читать `~/.gemini/config/skills`. Наличие файлов не подтверждает работу чата: после установки Reload Window и read-only smoke prompt из инструкции.

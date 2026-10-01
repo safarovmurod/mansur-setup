@@ -4,6 +4,15 @@
 
 ## Antigravity: 3 шага
 
+Для скачивания непосредственно из актуального GitHub репозитория:
+
+```bash
+npx --yes github:safarovmurod/mansur-setup mentor --dry-run
+npx --yes github:safarovmurod/mansur-setup mentor
+```
+
+Это точечное обновление mentor. Для полного IDE setup на Windows используется команда `install` из README. После изменения source skill в репозитории повторить установку: само редактирование/пуш ещё не обновляет профили остальных пользователей.
+
 1. Распакуй ZIP и открой эту папку в Antigravity. В терминале этой папки проверь Node: `node --version`. Если команды нет, установи Node с https://nodejs.org/en/download и заново открой терминал. Никакой npm registry package публиковать для этого не нужно.
 2. Выполни preview, затем install:
 

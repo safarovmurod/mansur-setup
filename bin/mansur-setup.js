@@ -55,11 +55,12 @@ function showHelp() {
 Mansur Antigravity Setup CLI
 
 USAGE:
-  npx mansur-antigravity-setup [command] [options]
+  npx --yes github:safarovmurod/mansur-setup [command] [options]
   node bin/mansur-setup.js [command] [options]
 
 COMMANDS:
   install             Apply the complete Antigravity setup (default)
+  mentor              Update global frontend mentor and its rules only
   doctor              Diagnose prerequisites, paths, and settings health
   backup              Create a manual backup of current settings & rules
   restore [dir]       Restore previous settings from backup
@@ -73,15 +74,24 @@ OPTIONS:
   --version, -v       Show package version
 
 EXAMPLES:
-  npx mansur-antigravity-setup install --name "Мансур"
-  npx mansur-antigravity-setup install --dry-run
-  npx mansur-antigravity-setup doctor
-  npx mansur-antigravity-setup restore
+  npx --yes github:safarovmurod/mansur-setup install --name "Мансур"
+  npx --yes github:safarovmurod/mansur-setup install --dry-run
+  npx --yes github:safarovmurod/mansur-setup mentor --dry-run
+  npx --yes github:safarovmurod/mansur-setup doctor
 `);
 }
 
 function main() {
   const args = process.argv.slice(2);
+  if (args[0] === 'mentor') {
+    const { spawnSync } = require('node:child_process');
+    const result = spawnSync(process.execPath, [
+      path.resolve(__dirname, '../scripts/install-mentor-skill.cjs'),
+      ...args.slice(1),
+    ], { stdio: 'inherit' });
+    if (result.error) console.error(result.error.message);
+    process.exit(result.status === null ? 1 : result.status);
+  }
   const opts = parseArgs(args);
 
   if (opts.version) {

@@ -37,7 +37,7 @@ test('Repository secrets and personal paths audit', () => {
   for (const file of allFiles) {
     // Only check text files
     const ext = path.extname(file).toLowerCase();
-    if (['.json', '.js', '.mjs', '.md', '.txt', '.ps1'].includes(ext)) {
+    if (['.json', '.js', '.mjs', '.cjs', '.md', '.txt', '.ps1'].includes(ext)) {
       const content = fs.readFileSync(file, 'utf8');
 
       for (const pat of forbiddenPatterns) {
