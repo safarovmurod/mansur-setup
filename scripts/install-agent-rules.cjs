@@ -47,9 +47,11 @@ function plan(options = {}) {
     || (startIndex >= 0 && old.indexOf(begin, startIndex + begin.length) >= 0)
     || (endIndex >= 0 && old.indexOf(end, endIndex + end.length) >= 0)) throw new Error('Invalid agent-work markers; no files written');
   const block = begin + '\n' + fs.readFileSync(path.join(sourceRoot, 'config/ai/codex.md'), 'utf8').trimEnd() + '\n' + end;
-  const content = startIndex >= 0
-    ? old.slice(0, startIndex) + block + old.slice(endIndex + end.length)
-    : old.trimEnd() + '\n\n' + block + '\n';
+  const foreign = startIndex >= 0
+    ? old.slice(0, startIndex) + old.slice(endIndex + end.length)
+    : old;
+  // Keep the compact loader before the default 32 KiB discovery cap.
+  const content = block + '\n\n' + foreign.trim() + '\n';
   plans.push({ target, content: Buffer.from(content) });
   plans.push({ target: path.join(home, '.gemini/config/rules/mansur-agent-work.md'), content: fs.readFileSync(path.join(sourceRoot, 'rules/mansur-agent-work.template.md')) });
   for (const item of plans) guard(item.target, home);

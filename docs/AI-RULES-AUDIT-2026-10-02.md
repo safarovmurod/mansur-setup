@@ -17,7 +17,7 @@ ChatGPT Custom Instructions: `config/ai/chatgpt-custom-instructions.txt`, 1268 �
 
 ## Реальная проверка
 
-- 12 npm tests прошли: прежние 10 + 2 новых. Проверены preview без записи, сохранение чужих инструкций, repeat без изменений, backup/restore, active override и broken markers → отказ до записи.
+- 13 npm tests прошли: прежние 10 + 3 новых. Проверены preview без записи, сохранение чужих инструкций, repeat без изменений, backup/restore, active override и broken markers → отказ до записи. Большой существующий AGENTS.md превышал стандартный лимит 32 KiB: компактный управляемый блок перенесён в начало, его окончание и ссылка на mentor входят в первые 32 KiB; прежний текст сохраняется. Проверен сценарий большого файла. Это не гарантирует загрузку всего старого хвоста: полный личный договор доступен в mentor reference.
 - Doctor: 52 passed, 0 warnings, 0 failures. Это диагностика файлов/CLI, не доказательство нового ответа Gemini.
 - Повтор реальной команды ai-rules вернул changed: [] и backup: null.
 - Оба действующих MCP config сохранили SHA-256. Secret-аудит проверяет реальные значения из локального MCP без вывода самих секретов; в source совпадений не найдено.
@@ -30,7 +30,7 @@ ChatGPT Custom Instructions: `config/ai/chatgpt-custom-instructions.txt`, 1268 �
 
 Новый ответ Gemini в Antigravity и персонализированный ответ ChatGPT: native UI не доступен в подключённом управлении, ChatGPT браузер не авторизован. Нового Gemini-чата/reload не выполнялось, активная работа не прерывалась. Не заявляется 100% использования всех skills или отсутствие любых будущих ошибок.
 
-Независимый untracked `tests/test-agent-browser-smoke.mjs`, появившийся от параллельной работы в workspace, сохранён на диске и не включён в commits этой настройки. Его тест не входит в заявленные 12 passed.
+Независимый untracked `tests/test-agent-browser-smoke.mjs`, появившийся от параллельной работы в workspace, сохранён на диске и не включён в commits этой настройки. Его тест не входит в заявленные 13 passed.
 
 ## Git
 
