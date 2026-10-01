@@ -54,14 +54,30 @@ function log(msg) {
   outputChannel.appendLine(`[${new Date().toLocaleTimeString()}] ${msg}`);
 }
 
-function refreshTerminals() {
-  try {
-    if (vscode && vscode.window && Array.isArray(vscode.window.terminals)) {
-      for (const t of vscode.window.terminals) {
-        t.sendText('', true);
+let terminalRefreshTimer = null;
+
+function refreshTerminals(delay = 100) {
+  if (terminalRefreshTimer) clearTimeout(terminalRefreshTimer);
+  terminalRefreshTimer = setTimeout(() => {
+    terminalRefreshTimer = null;
+    try {
+      const terms = (vscode && vscode.window && Array.isArray(vscode.window.terminals))
+        ? vscode.window.terminals
+        : [];
+      if (terms.length > 0) {
+        for (const t of terms) {
+          if (t && typeof t.sendText === 'function') {
+            t.sendText('', true);
+          }
+        }
+      } else {
+        const target = vscode && vscode.window && vscode.window.activeTerminal;
+        if (target && typeof target.sendText === 'function') {
+          target.sendText('', true);
+        }
       }
-    }
-  } catch (_) {}
+    } catch (_) {}
+  }, delay);
 }
 
 function gitExec(args, cwd) {
@@ -200,6 +216,7 @@ async function getDetailedBranches(cwd, defaultBranch, currentBranch) {
       return a.localeCompare(b);
     });
 
+  const systemProtected = new Set(['main', 'master', defaultBranch].filter(Boolean));
   const protectedNames = new Set(['main', 'master', defaultBranch, currentBranch].filter(Boolean));
 
   return allNames.map(name => {
@@ -216,6 +233,7 @@ async function getDetailedBranches(cwd, defaultBranch, currentBranch) {
       location,
       isCurrent: name === currentBranch,
       isProtected: protectedNames.has(name),
+      isSystemProtected: systemProtected.has(name),
     };
   });
 }
@@ -309,6 +327,11 @@ class GithubPanelProvider {
           case 'init':
           case 'refresh':
             await this._sendState();
+            break;
+          case 'syncTerminal':
+            refreshTerminals();
+            await this._sendState();
+            this._postMessage({ type: 'status', text: 'Терминал синхронизирован.' });
             break;
           case 'push':
             await this._handlePush(msg.commitMessage);
@@ -589,20 +612,21 @@ class GithubPanelProvider {
     if (s.error) throw new Error(s.error);
     if (s.mergeInProgress || s.rebaseInProgress) throw new Error('Finish merge/rebase first');
 
-    // Dirty protection
-    const porcelain = await getStatus(cwd);
-    if (porcelain) {
-      throw new Error('Рабочая директория содержит изменения. Сначала сделай Git Push или отмени изменения перед переключением.');
-    }
-
     const branches = await getDetailedBranches(cwd, s.defaultBranch, s.branch);
     const target = branches.find(b => b.name === name);
     if (!target) throw new Error(`Branch "${name}" not found`);
 
-    if (target.isLocal) {
-      await gitExec(['switch', name], cwd);
-    } else {
-      await gitExec(['switch', '--track', '-c', name, `origin/${name}`], cwd);
+    try {
+      if (target.isLocal) {
+        await gitExec(['switch', name], cwd);
+      } else {
+        await gitExec(['switch', '--track', '-c', name, `origin/${name}`], cwd);
+      }
+    } catch (switchErr) {
+      if (switchErr.message.includes('overwritten by checkout') || switchErr.message.includes('local changes')) {
+        throw new Error(`Изменения в файлах конфликтуют с веткой "${name}". Сделай Git Push или сохрани изменения перед переключением.`);
+      }
+      throw switchErr;
     }
 
     const currentBranch = await getCurrentBranch(cwd);
@@ -632,16 +656,13 @@ class GithubPanelProvider {
 
     const s = await collectState(cwd);
     if (s.error) throw new Error(s.error);
-    if (s.status) {
-      throw new Error('Рабочая директория содержит изменения. Сначала сделай Git Push или отмени изменения.');
-    }
 
     const defaultBranch = s.defaultBranch || 'main';
-    const forbidden = new Set(['main', 'master', defaultBranch, s.branch].filter(Boolean));
+    const forbidden = new Set(['main', 'master', defaultBranch].filter(Boolean));
 
     for (const b of branchesToDelete) {
       if (forbidden.has(b)) {
-        throw new Error(`Ветку "${b}" удалять запрещено (защищённая или текущая ветка).`);
+        throw new Error(`Ветку "${b}" удалять запрещено (защищённая ветка).`);
       }
     }
 
@@ -656,6 +677,15 @@ class GithubPanelProvider {
     if (confirm !== 'Удалить') {
       this._postMessage({ type: 'status', text: 'Удаление отменено.' });
       return;
+    }
+
+    // If active branch is to be deleted, switch back to default branch first
+    if (branchesToDelete.includes(s.branch)) {
+      try {
+        await gitExec(['switch', defaultBranch], cwd);
+      } catch (err) {
+        throw new Error(`Не удалось переключиться на ${defaultBranch} перед удалением: ${err.message}`);
+      }
     }
 
     const deleted = [];
@@ -928,13 +958,37 @@ class GithubPanelProvider {
     background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.05));
   }
 
-  .badge {
-    font-size: 9px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    background: rgba(128,128,128,0.2);
-    color: var(--vscode-descriptionForeground);
+  .del-icon-btn {
     margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 1px 5px;
+    border-radius: 2px;
+    line-height: 1;
+    opacity: 0.7;
+  }
+  .del-icon-btn:hover {
+    background: var(--vscode-errorForeground, #f44336);
+    color: #ffffff;
+    opacity: 1;
+  }
+
+  .refresh-btn {
+    background: none;
+    border: none;
+    color: var(--vscode-sideBarSectionHeader-foreground, inherit);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    opacity: 0.75;
+  }
+  .refresh-btn:hover {
+    background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.1));
+    opacity: 1;
   }
 
   /* Status feedback bar */
@@ -982,6 +1036,7 @@ class GithubPanelProvider {
       <span class="chevron" id="chevronCurrent">▼</span>
       <span>Current</span>
     </div>
+    <button class="refresh-btn" onclick="event.stopPropagation(); doSyncTerminal();" title="Синхронизировать статус и терминал">🔄</button>
   </div>
   <div class="block-content" id="contentCurrent" onclick="event.stopPropagation()">
     <div class="info-box">
@@ -998,6 +1053,7 @@ class GithubPanelProvider {
       <div class="field-label">Commit message</div>
       <textarea id="commitInput" placeholder="Например: add login form" rows="2" onkeydown="if(event.ctrlKey && event.key==='Enter') doPush()"></textarea>
       <button class="btn btn-primary" id="pushBtn" onclick="doPush()">Git Push</button>
+      <button class="btn btn-secondary" style="margin-top:5px;font-size:11px;padding:4px 8px;" onclick="doSyncTerminal()" title="Синхронизировать промпт терминала Git Bash">🔄 Синхронизировать терминал</button>
     </div>
   </div>
 </div>
@@ -1218,7 +1274,7 @@ function updateDeleteList(branches, current) {
   const container = document.getElementById('deleteChecklist');
   container.innerHTML = '';
 
-  const deletable = (branches || []).filter(b => !b.isProtected && b.name !== current);
+  const deletable = (branches || []).filter(b => !b.isSystemProtected && b.name !== 'main' && b.name !== 'master');
 
   if (deletable.length === 0) {
     container.innerHTML = '<div style="font-size:11px;color:var(--vscode-descriptionForeground);padding:4px;">Нет веток для удаления</div>';
@@ -1236,19 +1292,35 @@ function updateDeleteList(branches, current) {
     cb.onchange = updateDeleteBtnState;
 
     const nameSpan = document.createElement('span');
-    nameSpan.textContent = b.name;
+    nameSpan.textContent = b.name === current ? (b.name + ' (активный)') : b.name;
 
-    const badge = document.createElement('span');
-    badge.className = 'badge';
-    badge.textContent = b.location;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del-icon-btn';
+    delBtn.title = 'Удалить ветку ' + b.name;
+    delBtn.textContent = '✕';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      doDeleteSingleBranch(b.name);
+    };
 
     row.appendChild(cb);
     row.appendChild(nameSpan);
-    row.appendChild(badge);
+    row.appendChild(delBtn);
     container.appendChild(row);
   }
 
   updateDeleteBtnState();
+}
+
+function doDeleteSingleBranch(name) {
+  if (busy || !name) return;
+  setBusy(true);
+  setStatus('Preparing deletion...', 'info');
+  vscode.postMessage({ command: 'deleteBranches', branches: [name] });
+}
+
+function doSyncTerminal() {
+  vscode.postMessage({ command: 'syncTerminal' });
 }
 
 // Receive messages from extension host
@@ -1302,6 +1374,12 @@ window.addEventListener('message', event => {
 // Initialization
 vscode.postMessage({ command: 'init' });
 renderBlockStates();
+
+setInterval(() => {
+  if (!busy && document.visibilityState === 'visible') {
+    vscode.postMessage({ command: 'refresh' });
+  }
+}, 2500);
 </script>
 </body>
 </html>`;
@@ -1323,6 +1401,30 @@ function activate(context) {
       if (panelProvider) panelProvider.refresh();
     })
   );
+
+  if (vscode && vscode.workspace) {
+    if (typeof vscode.workspace.onDidSaveTextDocument === 'function') {
+      context.subscriptions.push(
+        vscode.workspace.onDidSaveTextDocument(() => {
+          if (panelProvider) panelProvider.refresh();
+        })
+      );
+    }
+    if (typeof vscode.workspace.onDidCreateFiles === 'function') {
+      context.subscriptions.push(
+        vscode.workspace.onDidCreateFiles(() => {
+          if (panelProvider) panelProvider.refresh();
+        })
+      );
+    }
+    if (typeof vscode.workspace.onDidDeleteFiles === 'function') {
+      context.subscriptions.push(
+        vscode.workspace.onDidDeleteFiles(() => {
+          if (panelProvider) panelProvider.refresh();
+        })
+      );
+    }
+  }
 
   log('MANSUR GITHUB PANEL ACTIVATED');
 }
