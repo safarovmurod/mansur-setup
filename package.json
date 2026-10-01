@@ -1,0 +1,47 @@
+{
+  "name": "mansur-antigravity-setup",
+  "version": "1.0.0",
+  "description": "Portable developer setup and installer for Antigravity IDE",
+  "keywords": [
+    "antigravity",
+    "antigravity-ide",
+    "developer-setup",
+    "dotfiles",
+    "installer",
+    "react",
+    "typescript"
+  ],
+  "author": "Mansur",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "./bin/mansur-setup.js",
+  "bin": {
+    "mansur-setup": "./bin/mansur-setup.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "config",
+    "rules",
+    "skills",
+    "scripts",
+    "extensions",
+    "agents",
+    "resources",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node bin/mansur-setup.js",
+    "install-setup": "node bin/mansur-setup.js install",
+    "doctor": "node bin/mansur-setup.js doctor",
+    "backup": "node bin/mansur-setup.js backup",
+    "test": "node --test tests/test-installer.mjs tests/test-jsonc.mjs tests/test-git-guards.mjs tests/test-github-panel.mjs tests/test-secrets-audit.mjs tests/test-agent-rules.mjs tests/test-mcp-permissions.mjs",
+    "test:browser": "node --test tests/test-agent-browser-smoke.mjs"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=10.0.0"
+  }
+}

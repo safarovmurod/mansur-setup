@@ -1,0 +1,178 @@
+[
+  {
+    "id": "esbenp.prettier-vscode",
+    "name": "Prettier - Code formatter",
+    "version": "12.4.0",
+    "description": "Code formatter using prettier",
+    "category": "Formatters",
+    "source": "gallery"
+  },
+  {
+    "id": "bradlc.vscode-tailwindcss",
+    "name": "Tailwind CSS IntelliSense",
+    "version": "0.16.0",
+    "description": "Intelligent Tailwind CSS tooling for VS Code / Antigravity",
+    "category": "Programming Languages",
+    "source": "gallery"
+  },
+  {
+    "id": "pkief.material-icon-theme",
+    "name": "Material Icon Theme",
+    "version": "5.38.1",
+    "description": "Material Design Icons for Files and Folders",
+    "category": "Themes",
+    "source": "gallery"
+  },
+  {
+    "id": "usernamehw.errorlens",
+    "name": "Error Lens",
+    "version": "3.29.0",
+    "description": "Improve highlighting of errors, warnings and other language diagnostics",
+    "category": "Linters",
+    "source": "gallery"
+  },
+  {
+    "id": "streetsidesoftware.code-spell-checker",
+    "name": "Code Spell Checker",
+    "version": "4.9.3",
+    "description": "Spelling checker for source code (configured for en, ru)",
+    "category": "Linters",
+    "source": "gallery"
+  },
+  {
+    "id": "dsznajder.es7-react-js-snippets",
+    "name": "ES7+ React/Redux/React-Native snippets",
+    "version": "4.4.3",
+    "description": "Extensions for React, Redux and React Native with TypeScript support",
+    "category": "Snippets",
+    "source": "gallery"
+  },
+  {
+    "id": "formulahendry.auto-rename-tag",
+    "name": "Auto Rename Tag",
+    "version": "0.1.10",
+    "description": "Auto rename paired HTML/XML/JSX tag",
+    "category": "Programming Languages",
+    "source": "gallery"
+  },
+  {
+    "id": "christian-kohler.path-intellisense",
+    "name": "Path Intellisense",
+    "version": "2.8.0",
+    "description": "Autocompletes filenames in imports and paths",
+    "category": "Other",
+    "source": "gallery"
+  },
+  {
+    "id": "christian-kohler.npm-intellisense",
+    "name": "npm Intellisense",
+    "version": "1.4.5",
+    "description": "Autocompletes npm modules in import statements",
+    "category": "Other",
+    "source": "gallery"
+  },
+  {
+    "id": "edwinhuish.better-comments-next",
+    "name": "Better Comments Next",
+    "version": "3.6.0",
+    "description": "Human-friendly colored comments in code",
+    "category": "Other",
+    "source": "gallery"
+  },
+  {
+    "id": "kisstkondoros.vscode-gutter-preview",
+    "name": "Image preview",
+    "version": "0.32.2",
+    "description": "Shows image preview in the editor gutter and on hover",
+    "category": "Other",
+    "source": "gallery"
+  },
+  {
+    "id": "anteprimorac.html-end-tag-labels",
+    "name": "HTML End Tag Labels",
+    "version": "1.0.0",
+    "description": "Shows opening tag class/id labels at end tags",
+    "category": "Other",
+    "source": "gallery"
+  },
+  {
+    "id": "bradgashler.htmltagwrap",
+    "name": "htmltagwrap",
+    "version": "1.0.0",
+    "description": "Wraps selected text in HTML/JSX tags (Alt+W)",
+    "category": "Other",
+    "source": "gallery"
+  },
+  {
+    "id": "wix.vscode-import-cost",
+    "name": "Import Cost",
+    "version": "3.3.0",
+    "description": "Display imported package size inline in editor",
+    "category": "Other",
+    "source": "gallery"
+  },
+  {
+    "id": "ritwickdey.liveserver",
+    "name": "Live Server",
+    "version": "5.7.10",
+    "description": "Launch a development local Server with live reload feature",
+    "category": "Extension Packs",
+    "source": "gallery"
+  },
+  {
+    "id": "github.vscode-github-actions",
+    "name": "GitHub Actions",
+    "version": "0.32.3",
+    "description": "GitHub Actions workflows management in IDE",
+    "category": "Other",
+    "source": "gallery"
+  },
+  {
+    "id": "akintomiwa-fisayo.icon-classes",
+    "name": "Icon Classes",
+    "version": "1.0.0",
+    "description": "Icon autocomplete and classes helper",
+    "category": "Other",
+    "source": "gallery"
+  },
+  {
+    "id": "ms-ceintl.vscode-language-pack-ru",
+    "name": "Russian Language Pack for Visual Studio Code / Antigravity",
+    "version": "1.106.0",
+    "description": "Localization for Russian UI",
+    "category": "Language Packs",
+    "source": "gallery"
+  },
+  {
+    "id": "ms-mssql.mssql",
+    "name": "SQL Server (mssql)",
+    "version": "1.46.0",
+    "description": "Develop Microsoft SQL Server, Azure SQL Database and SQL Data Warehouse databases",
+    "category": "Programming Languages",
+    "source": "gallery"
+  },
+  {
+    "id": "oxc.oxc-vscode",
+    "name": "JavaScript and TypeScript (OXC)",
+    "version": "1.62.0",
+    "description": "Fast JS/TS linter using the Oxlint engine",
+    "category": "Linters",
+    "source": "gallery"
+  },
+  {
+    "id": "iranon.jelly-cursor",
+    "name": "Jelly Cursor",
+    "version": "0.0.8",
+    "description": "Cursor animation provider (configured in native smooth mode, ripple disabled)",
+    "category": "Other",
+    "source": "gallery"
+  },
+  {
+    "id": "mansur.mansur-github-panel",
+    "name": "Mansur GitHub Panel",
+    "version": "1.2.0",
+    "description": "GitHub Explorer panel with Git push, branch switch, new branch, dirty protection, and secret filtering",
+    "category": "Other",
+    "source": "local-vsix"
+  }
+]
