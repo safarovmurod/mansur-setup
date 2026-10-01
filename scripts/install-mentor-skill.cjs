@@ -6,7 +6,7 @@ const crypto = require('node:crypto');
 
 const markerStart = '<!-- mansur-mentor:begin -->';
 const markerEnd = '<!-- mansur-mentor:end -->';
-const loader = `${markerStart}\n## Действующий договор Мансур\nДля работы с Мансур по frontend и обучению сначала прочитай следующий skill.\nТекущий запрос выше истории. Новый пример по умолчанию JSX + MUI; существующий\nили явно выбранный TS/Tailwind/Redux/Zustand/Jotai сохраняется. Отвечай на простом\nразговорном таджикском Душанбе, если Мансур не запросил другой язык.\nНаличие этих ссылок не доказывает runtime загрузку: проверять в новом AI запросе.\n@config/skills/mansur-frontend-mentor/SKILL.md\n${markerEnd}\n`;
+const loader = "<!-- mansur-mentor:begin -->\n## Действующий договор Мансур — автоматически во всех проектах\nДля любой задачи по коду, созданию сайта, логике, API, state, debug, review или обучению сначала прочитай следующий skill и применяй его без /skill и без отдельной просьбы.\nЭто глобальное правило для новых и существующих проектов, любого branch и новых/существующих файлов. Расширение файла и наличие React не являются обязательными условиями.\nЧитай связанные references по задаче; не загружай весь набор посторонних skills без необходимости. Текущий запрос и системные инструкции выше истории; сохраняй рабочую логику и стек существующего проекта.\nНовый frontend-пример по умолчанию JSX + MUI; явно выбранный TS/Tailwind/Redux/Zustand/Jotai сохраняется. Отвечай на разговорном таджикском Душанбе, если пользователь не запросил другой язык.\nЕсли skill недоступен, сообщи об этом; не утверждай, что применил непрочитанные правила. Настройка загрузки не является доказательством фактического runtime чтения.\n@config/skills/mansur-frontend-mentor/SKILL.md\n<!-- mansur-mentor:end -->\n";
 
 function managedBlock(text, block) {
   const start = text.indexOf(markerStart);
@@ -90,6 +90,10 @@ function planInstall(options = {}) {
   const home = path.resolve(options.home || os.homedir());
   const source = path.join(options.sourceRoot || path.resolve(__dirname, '..'), 'skills', 'mansur-frontend-mentor');
   const plans = [];
+  plans.push({
+    target: path.join(home, '.gemini', 'config', 'rules', 'mansur-mentor-auto.md'),
+    content: fs.readFileSync(path.join(options.sourceRoot || path.resolve(__dirname, '..'), 'rules', 'mansur-mentor-auto.template.md')),
+  });
   const roots = [path.join(home, '.gemini', 'config', 'skills', 'mansur-frontend-mentor')];
   if (options.shared) roots.push(path.join(home, '.agents', 'skills', 'mansur-frontend-mentor'));
   for (const root of roots) {

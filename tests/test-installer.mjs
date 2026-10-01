@@ -14,6 +14,40 @@ const { runInstaller } = require('../lib/installer.js');
 const { runDoctor } = require('../lib/doctor.js');
 const { restoreBackup, listBackups } = require('../lib/backup.js');
 const { getEnvironmentPaths } = require('../lib/paths.js');
+const { install: installMentor, restore: restoreMentor } = require('../scripts/install-mentor-skill.cjs');
+
+test('Mentor global autoload preserves an existing project and supports preview, repeat and restore', (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'mentor-global-'));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  const oldProject = path.join(home, 'old project', 'src');
+  fs.mkdirSync(oldProject, { recursive: true });
+  const projectFile = path.join(oldProject, 'App.jsx');
+  const projectCode = 'export default function App() { return null; }';
+  fs.writeFileSync(projectFile, projectCode);
+  const geminiPath = path.join(home, '.gemini', 'GEMINI.md');
+  fs.mkdirSync(path.dirname(geminiPath), { recursive: true });
+  const foreignRule = 'Preserve this user instruction.\n';
+  fs.writeFileSync(geminiPath, foreignRule);
+  const options = { home, sourceRoot: repoRoot, shared: true };
+  const rulePath = path.join(home, '.gemini', 'config', 'rules', 'mansur-mentor-auto.md');
+  const preview = installMentor({ ...options, dryRun: true });
+  assert.ok(preview.changed.includes(rulePath));
+  assert.equal(fs.existsSync(rulePath), false);
+  assert.equal(fs.readFileSync(geminiPath, 'utf8'), foreignRule);
+  const result = installMentor(options);
+  assert.ok(result.backup);
+  assert.match(fs.readFileSync(rulePath, 'utf8'), /^---\r?\ntrigger: always_on\r?\n---/);
+  const installedGemini = fs.readFileSync(geminiPath, 'utf8');
+  assert.ok(installedGemini.includes('без /skill'));
+  assert.ok(installedGemini.endsWith(foreignRule));
+  assert.equal(fs.readFileSync(projectFile, 'utf8'), projectCode);
+  assert.equal(fs.readFileSync(path.join(home, '.agents', 'skills', 'mansur-frontend-mentor', 'SKILL.md'), 'utf8'), fs.readFileSync(path.join(repoRoot, 'skills', 'mansur-frontend-mentor', 'SKILL.md'), 'utf8'));
+  assert.deepEqual(installMentor(options).changed, []);
+  restoreMentor(result.backup);
+  assert.equal(fs.readFileSync(geminiPath, 'utf8'), foreignRule);
+  assert.equal(fs.existsSync(rulePath), false);
+  assert.equal(fs.readFileSync(projectFile, 'utf8'), projectCode);
+});
 
 test('Installer end-to-end in isolated environment with spaces in path', (t) => {
   const tempBase = path.join(os.tmpdir(), `mansur-test-suite-${Date.now()}`);
@@ -87,6 +121,12 @@ test('Installer end-to-end in isolated environment with spaces in path', (t) => 
   assert.equal(rule01Content.includes('{{DISPLAY_NAME}}'), false, 'Placeholder should be replaced');
 
   // Verify skills deployment
+  const mentorRule = fs.readFileSync(path.join(envPaths.geminiRulesDir, 'mansur-mentor-auto.md'), 'utf8');
+  assert.match(mentorRule, /^---\r?\ntrigger: always_on\r?\n---/);
+  assert.equal(fs.existsSync(path.join(envPaths.geminiSkillsDir, 'mansur-frontend-mentor', 'SKILL.md')), true);
+  const mentorGemini = fs.readFileSync(path.join(envPaths.geminiDir, 'GEMINI.md'), 'utf8');
+  assert.ok(mentorGemini.includes('config/skills/mansur-frontend-mentor/SKILL.md'));
+  assert.ok(mentorGemini.includes('без /skill'));
   assert.equal(fs.existsSync(path.join(envPaths.geminiSkillsDir, 'mansur-practice', 'SKILL.md')), true);
   assert.equal(fs.existsSync(path.join(envPaths.geminiSkillsDir, 'vercel-react-best-practices', 'SKILL.md')), true);
 
