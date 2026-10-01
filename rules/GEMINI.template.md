@@ -52,6 +52,15 @@ Slash commands remain available as optional manual overrides only.
 
 DO NOT activate for: plain text tasks, system config, Git operations, Redux-only store logic with no JSX
 
+### agent-browser — AUTO-ACTIVATE when:
+- Creating, modifying, or reviewing a website/component based on a screenshot, Figma, image, or design mockup
+- Performing visual verification, layout checks, typography/spacing checks, responsive checks, or screenshot diffs
+- Task mentions: screenshot, figma, mockup, layout check, visual test, visual verification, pixel perfect, agent-browser, browser test
+- Running the mandatory design verification cycle with browser screenshots
+
+Preserve mansur-frontend-mentor, conversational Dushanbe Tajik style, beginner-friendly simple code, and existing project stack (never force Tailwind or TypeScript on JSX + MUI).
+DO NOT activate for: backend logic, pure API/store changes without UI, CLI scripts, text-only answers
+
 ### mansur-practice rules — AUTO-ACTIVE always (not a separate skill to activate):
 - All coding rules from mansur-01.md, 02.md, 03.md apply automatically
 - When the branch or explicit task matches the PRACTICE SYSTEM signals below, apply extra beginner-patience mode
@@ -158,7 +167,7 @@ Do not scan all skills on every edit.
 
 ## LOCAL DUPLICATE PREVENTION
 
-Global rules and skills live in: C:\Users\safar\.gemini\config\
+Global rules and skills live in: %USERPROFILE%\.gemini\config\
 Project directories must NOT contain:
 - .agents/ with global rule copies
 - .agent/ with global rule copies

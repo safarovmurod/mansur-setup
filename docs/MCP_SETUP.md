@@ -1,95 +1,31 @@
-# Настройка Model Context Protocol (MCP) в Antigravity IDE
+# MCP: подключение с нуля без экспорта чужих ключей
 
-В данной конфигурации Antigravity IDE используются следующие MCP-серверы:
-1. `github-mcp-server` — интеграция с GitHub (чтение/создание веток, PR, Issues, репозиториев).
-2. `gsd` — координация сложных многофазных задач (Get Stuff Done core).
-3. `sequential-thinking` — пошаговое рассуждение для сложных архитектурных решений.
+Installer не переносит credentials, не объединяет два существующих MCP configs и не меняет активную авторизацию. Новому пользователю создаёт disabled hosted GitHub template в ~/.gemini/config/mcp_config.json и GSD/sequential-thinking template в ~/.gemini/antigravity/mcp_config.json. Фактический активный источник проверь в IDE: Agent panel → меню MCP servers / Manage MCP Servers → View raw config. Название меню может отличаться между версиями; редактируй именно открытый IDE файл. Сделай local backup.
 
----
+## GitHub — hosted, без Docker
 
-## 1. GitHub MCP Server
+1. Создай свой PAT: [fine-grained tokens](https://github.com/settings/personal-access-tokens/new). Выбери только нужные repositories и permissions под реальные read/write задачи; не выдавай все права ради установки. Ссылка [classic tokens](https://github.com/settings/tokens) — если необходима совместимость, права также минимальные.
+2. В активном config добавь entry из [github-remote.template.json](../config/mcp/github-remote.template.json). Замени placeholder Authorization своим `Bearer ...`, disabled установи false. Не замени весь mcpServers — добавь/обнови только github-mcp-server. serverUrl: https://api.githubcopilot.com/mcp/.
+3. Reload → refresh MCP → попроси безопасный read-only get_me/list tools. Не считать enabled запись доказательством соединения. При auth/transport error сверяй client support и [официальную remote документацию](https://github.com/github/github-mcp-server/blob/main/docs/remote-server.md). Если transport не поддержан, используй Docker вариант ниже.
 
-### Назначение
-Позволяет AI-агенту Antigravity взаимодействовать с GitHub API: читать код, проверять коммиты, создавать PR и ветки напрямую без ручного переключения в браузер.
+PAT хранится только локально вне repo. Не отправляй его агенту в чат, screenshot или issue.
 
-### Prerequisites (Предварительные требования)
-- **Docker Desktop для Windows**: сервер запускается в изолированном контейнере `ghcr.io/github/github-mcp-server`.
-- **GitHub Personal Access Token (PAT)**.
+## GitHub — Docker Desktop на Windows или Docker на Linux
 
-### Пошаговая настройка
+1. Windows: [скачай Docker Desktop](https://www.docker.com/products/docker-desktop/), установи, выполни требования WSL2 из [официальной инструкции](https://docs.docker.com/desktop/setup/install/windows-install/) и запусти Docker Desktop. Linux: [Docker Engine по своему дистрибутиву](https://docs.docker.com/engine/install/). Проверь `docker --version` и `docker ps`. Установка Desktop в Windows не равна установке Linux Engine в WSL.
+2. Используй [mcp_config.template.json](../config/mcp/mcp_config.template.json), подставив только свой PAT в env.GITHUB_PERSONAL_ACCESS_TOKEN. Сохрани остальных servers. `docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server` загружает image автоматически при первом запуске MCP. Не выводи env/token командой echo.
+3. Reload/refresh и фактический безопасный read tool. [Официальный server](https://github.com/github/github-mcp-server).
 
-1. **Установите и запустите Docker Desktop:**
-   - Скачайте с официального сайта: [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
-   - Запустите Docker Desktop и убедитесь, что в трее Windows отображается статус "Docker is running".
-   - Проверка в терминале:
-     ```powershell
-     docker --version
-     docker ps
-     ```
+## GSD и Sequential Thinking
 
-2. **Создайте GitHub Personal Access Token (PAT):**
-   - Перейдите в GitHub: **Settings** -> **Developer settings** -> **Personal access tokens** -> **Tokens (classic)**
-   - Прямая ссылка: [https://github.com/settings/tokens](https://github.com/settings/tokens)
-   - Нажмите **Generate new token (classic)**.
-   - Задайте имя (например, `Antigravity IDE MCP`).
-   - Отметьте scopes (права доступа):
-     - `repo` (Full control of private repositories)
-     - `read:user`
-     - `workflow` (опционально, если планируете триггерить GitHub Actions)
-   - Нажмите **Generate token** и скопируйте полученную строку токена (`ghp_...`).
+Entry names и команды: [mcp_antigravity.template.json](../config/mcp/mcp_antigravity.template.json). Node/npm должны быть доступны процессу IDE. GSD package закреплён на версии 1.15.0, совпадающей с exported runtime; npx скачивает package при первом запуске. [Официальный GSD MCP guide](https://github.com/open-gsd/gsd-core/blob/next/docs/how-to/connect-gsd-mcp-server.md), [Sequential Thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking). Наличие skill не подтверждает доступность MCP tool; проверяй list tools и безопасный вызов.
 
-3. **Вставьте токен в конфигурационный файл:**
-   - Откройте файл: `%USERPROFILE%\.gemini\config\mcp_config.json`
-   - Вставьте ваш токен вместо `YOUR_GITHUB_PERSONAL_ACCESS_TOKEN_HERE`:
-     ```json
-     {
-       "mcpServers": {
-         "github-mcp-server": {
-           "command": "docker",
-           "args": [
-             "run",
-             "-i",
-             "--rm",
-             "-e",
-             "GITHUB_PERSONAL_ACCESS_TOKEN",
-             "ghcr.io/github/github-mcp-server"
-           ],
-           "env": {
-             "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_ваш_фактический_токен"
-           }
-         }
-       }
-     }
-     ```
+## PAL MCP + Clink — optional, отдельно от стандартного installer
 
-4. **Проверка работы:**
-   - Перезагрузите окно Antigravity IDE: `Ctrl+Shift+P` -> **Developer: Reload Window**.
-   - Агент автоматически увидит доступные GitHub MCP инструменты (`create_pull_request`, `search_repositories` и др.).
+PAL не был обнаружен в этих двух configs, поэтому не помечается как установленный. Это отдельный multi-model сервер, не бесплатная раздача аккаунтов Claude/OpenAI. Clink вызывает внешние CLI; соответствующий CLI и его личная авторизация нужны. Выбирай доступные модели в своём provider, названия моделей не выдумывать.
 
----
+1. Для PAL поставь [Python](https://www.python.org/downloads/) и [uv](https://docs.astral.sh/uv/getting-started/installation/). Проверь `python --version`, `uv --version`, `uvx --version` в терминале IDE; если Windows alias выводит только Python, это ещё не рабочий Python. Получи собственный ключ выбранного provider: [OpenRouter](https://openrouter.ai/keys), [Google AI Studio](https://aistudio.google.com/apikey), [OpenAI Platform](https://platform.openai.com/api-keys). Локальные модели — отдельная возможность, не эквивалент Claude/GPT.
+2. Добавь PAL entry в активный MCP config, следуя [getting started](https://github.com/BeehiveInnovations/pal-mcp-server/blob/main/docs/getting-started.md). Общая команда: `uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server`. Используй фактический путь uvx, если IDE не видит PATH. Env содержит только собственный key. Для Windows native есть [run-server.ps1](https://github.com/BeehiveInnovations/pal-mcp-server/blob/main/run-server.ps1); WSL route настраивается внутри WSL, не смешивай Windows paths с Linux paths.
+3. Reload/refresh → проверь tools. Для Clink следуй [Clink docs](https://github.com/BeehiveInnovations/pal-mcp-server/blob/main/docs/tools/clink.md): сначала установи выбранный внешний CLI и авторизуйся самостоятельно. Проверяй CLI version и простой read-only запрос до объявления «работает». Токены не клади в repo. PAL installation/auth не выполняются standard installer автоматически.
 
-## 2. GSD и Sequential Thinking MCP
-
-### Назначение
-- `gsd`: обеспечивает режим FAST/DEEP выполнения задач и координацию структурированных изменений.
-- `sequential-thinking`: включается агентом автоматически при разборе запутанных багов и архитектурных рефакторингов.
-
-### Требования и автоматизация
-- Никаких токенов не требуется.
-- Работает через `npx` (Node.js >= 18).
-- Файл конфигурации находится в `%USERPROFILE%\.gemini\antigravity\mcp_config.json`:
-  ```json
-  {
-    "mcpServers": {
-      "gsd": {
-        "command": "npx",
-        "args": ["-y", "-p", "@opengsd/gsd-core", "gsd-mcp-server"]
-      },
-      "sequential-thinking": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
-      }
-    }
-  }
-  ```
-- При первом обращении `npx` автоматически загрузит нужные пакеты без дополнительных ручных действий.
+Ошибки doctor config/launcher показываются без credentials. Doctor не обещает, что конкретный сервер принял токен, модель доступна или AI использовал его инструмент.

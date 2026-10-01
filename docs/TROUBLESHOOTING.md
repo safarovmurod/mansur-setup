@@ -92,3 +92,13 @@ npm install -g antigravity-manager
    node bin/mansur-setup.js restore "C:\Users\<Имя>\.gemini\backups\<папка-бэкапа>"
    ```
 2. Перезагрузите окно Antigravity IDE (`Ctrl+Shift+P` -> **Developer: Reload Window**).
+
+
+## Audit 2026-10-02
+
+- Полный setup требует Node >=24, npm >=10: эти требования подтверждены package metadata agent-browser 0.38.1 и GSD Core 1.15.0.
+- Windows .cmd запускается через корректное shell quoting; Node spawn .cmd напрямую может не работать.
+- При запуске powershell.exe из PowerShell 7 inherited PSModulePath может скрывать Get-FileHash. Panel installer запускается с Windows PowerShell module directory.
+- Fallback copy extension не считается registration: проверяется настоящий CLI список.
+- Invalid destination JSON останавливает installer до изменения настроек. Ошибка backup останавливает установку. Ошибка extension/browser не скрывается успешным итогом.
+- Restore восстанавливает конфигурационные файлы, не uninstall extensions/npm packages и не удаляет новые неизвестные файлы.

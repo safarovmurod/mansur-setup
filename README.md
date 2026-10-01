@@ -1,169 +1,88 @@
 # mansur-setup
 
-> Готовая, переносимая и автоматизированная среда разработки для **Antigravity IDE** на Windows: нативный плавный курсор, Prettier, Tailwind CSS, Material Icons, панель GitHub Explorer, движок практики React/TypeScript, MCP-серверы и персональные правила AI-ассистента.
+Переносимые настройки Мансура для **Antigravity IDE на Windows**: глобальные rules, 77 skills, GSD Core 1.15.0 и агенты, browser verification, 22 extension IDs, тема, иконки, shortcuts и practice engine. Настройки работают на уровне пользователя во всех workspace; AI выбирает skills по задаче без /skill. Это настройка загрузки, а не гарантия 100% соблюдения моделью.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform: Windows](https://img.shields.io/badge/Platform-Windows-0078D6.svg)]()
-[![Node: >=18](https://img.shields.io/badge/Node-%3E%3D18-339933.svg)]()
+## Установка: 3 шага
 
----
+**1. Подготовь компьютер.** Установи [Antigravity](https://antigravity.google/download), [Node.js LTS](https://nodejs.org/en/download) и [Git for Windows](https://git-scm.com/downloads/win). Перезапусти терминал IDE. Проверь `node --version` и `git --version`. Используй актуальный Node LTS; полный setup требует Node >=24 и npm >=10 (runtime GSD и agent-browser). Никаких наших API keys и аккаунтов не требуется.
 
-## Что входит в этот Setup
-
-1. **Идеальная типографика и нативный курсор:**
-   - Плавная аппаратная каретка (`cursorSmoothCaretAnimation: on`).
-   - Отключены отвлекающие эффекты водной ряби (Jelly ripple) и спарка.
-   - Оптимальный межстрочный интервал (25px) и отступы под шрифт **JetBrains Mono**.
-   - Мягкая цветовая палитра без раздражающих рамок текущей строки.
-2. **Форматирование и статический анализ:**
-   - Prettier по умолчанию для всех языков (`.ts`, `.tsx`, `.js`, `.jsx`, `.html`, `.css`, `.json`, `.md`).
-   - Форматирование при сохранении (`formatOnSave: true`).
-   - Настроенный **Tailwind CSS IntelliSense** с автодополнением в `className`.
-   - **ErrorLens** с задержкой 2 сек и фильтрацией шумных предупреждений.
-3. **Кастомная панель GitHub Explorer (`mansur-github-panel` v1.2.0):**
-   - Удобная боковая вкладка в проводнике с 4 раскрывающимися блоками:
-     - **CURRENT:** текущая ветка, статус синхронизации с origin, поле ввода commit message, кнопка Git Push (защита базовой ветки `main/master`, проверка секретов перед staging).
-     - **NEW BRANCH:** создание новой ветки строго из базового шаблона (`origin/main`), переключение и немедленный push с установкой tracking.
-     - **MY BRANCH:** выпадающий список существующих веток (`local`, `origin`, `local + origin`) для безопасного переключения без дубликатов.
-     - **DELETE BRANCH:** компактный список с чекбоксами для безопасного удаления одной или нескольких веток с защитой текущей/базовой веток и предупреждением об уникальных коммитах.
-   - Встроенная защита от случайной отправки секретов (`.env`, `.pem`, `.key`, `credentials.json`) и блокировка операций при наличии несохранённого кода.
-4. **Обучающий движок и правила AI (Practice System):**
-   - Глобальный скрипт `practice-engine.mjs` (`practice:new`, `practice:save`, `practice:open`).
-   - Автоматическая активация режима практики для веток `day1`, `redux-practice`, `learn-hooks` и др.
-   - Терпеливый пошаговый стиль объяснения (1 шаг за 1 сообщение), разговорная речь Душанбе и обновлённый `mansur-frontend-mentor`.
-   - Новый пример по умолчанию JSX + MUI; существующий или явно выбранный TypeScript/Tailwind сохраняется. Zustand, Redux Toolkit и Jotai изучаются отдельно, локально и с API.
-5. **Model Context Protocol (MCP):**
-   - Готовые безопасные шаблоны подключения **GitHub MCP Server** (через Docker), **GSD** и **Sequential Thinking**.
-
----
-
-## 3 простых шага для установки на любом Windows ПК
-
-### Шаг 1. Предварительные требования (Prerequisites)
-Убедитесь, что на компьютере установлены:
-1. **Windows 10 или 11**
-2. **Node.js >= 18** (проверка в терминале: `node -v`)
-3. **Git for Windows** (проверка: `git --version`)
-4. **Antigravity IDE**
-
-> [!TIP]
-> Рекомендуемый шрифт: **JetBrains Mono**. Установить в одну команду: `winget install JetBrains.JetBrainsMono`.
-
----
-
-### Шаг 2. Автоматическая установка
-
-Откройте терминал (PowerShell или CMD) и выполните **одну проверенную команду**:
+**2. В терминале Antigravity установи глобально**, заменив имя своим:
 
 ```bash
-npx --yes github:safarovmurod/mansur-setup install
+npx --yes github:safarovmurod/mansur-setup#mancho-setting-antigraviti install --name "Мансур"
 ```
 
-Либо укажите своё имя для персонального обращения AI:
-```bash
-npx --yes github:safarovmurod/mansur-setup install --name "Мансур"
-```
+Эта ветка содержит текущий проверенный audit. Она не требует публикации npm registry package. Интернет нужен для скачивания package, marketplace extensions, agent-browser и Chrome. Installer создаёт backup, сохраняет посторонние settings и существующие MCP configs, применяет values из config/settings.json, устанавливает все bundles из skills/, все template rules, runtime scripts и GSD dependencies. Ошибки extensions или browser установки дают неполный результат и ненулевой exit code.
 
-#### Альтернатива (через локальное клонирование):
-```bash
-git clone https://github.com/safarovmurod/mansur-setup.git
-cd mansur-setup
-npm run install-setup
-```
-
-Инсталлятор автоматически:
-- Создаст резервную копию существующих настроек в `~/.gemini/backups/`.
-- Корректно объединит `settings.json`, `keybindings.json` и `argv.json` без стирания ваших сторонних настроек.
-- Установит глобальные правила AI и скиллы (`mansur-frontend-mentor`, `mansur-practice`, `vercel-react-best-practices`).
-- Установит кастомную панель `mansur-github-panel` и зарегистрирует 22 расширения.
-
----
-
-### Шаг 3. Персональное подключение и перезагрузка
-
-1. **Перезагрузите окно Antigravity IDE:**
-   - Нажмите `Ctrl + Shift + P`
-   - Введите `Developer: Reload Window` и нажмите `Enter`.
-2. **Подключение GitHub MCP (если требуется интеграция с репозиториями):**
-   - Запустите Docker Desktop.
-   - Откройте файл `%USERPROFILE%\.gemini\config\mcp_config.json`.
-   - Вставьте ваш GitHub Personal Access Token вместо `YOUR_GITHUB_PERSONAL_ACCESS_TOKEN_HERE`.
-   - Подробнее в руководстве [docs/MCP_SETUP.md](docs/MCP_SETUP.md).
-
----
-
-## Проверка состояния системы (Doctor)
-
-Чтобы убедиться, что все пути, настройки, расширения и правила работают корректно, запустите:
+Для preview добавь `--dry-run`: он не записывает файлы и не запускает установки. Пример:
 
 ```bash
-npx --yes github:safarovmurod/mansur-setup doctor
+npx --yes github:safarovmurod/mansur-setup#mancho-setting-antigraviti install --name "Мансур" --dry-run
 ```
 
-или локально:
-```bash
-npm run doctor
-```
-
----
-
-## Резервное копирование и откат (Backup & Restore)
-
-Инсталлятор гарантирует безопасность ваших существующих файлов. Перед каждым обновлением создаётся timestamped-бэкап.
-
-- **Создать бэкап вручную:**
-  ```bash
-  npx --yes github:safarovmurod/mansur-setup backup
-  ```
-- **Восстановить последнее состояние:**
-  ```bash
-  npx --yes github:safarovmurod/mansur-setup restore
-  ```
-
----
-
-## Дополнительные флаги инсталлятора
-
-| Флаг | Назначение |
-|---|---|
-| `--name <name>` | Установить отображаемое имя пользователя для AI (по умолчанию: `Мансур`) |
-| `--dry-run` | Предпросмотр всех планируемых изменений без записи файлов на диск |
-| `--skip-extensions` | Применить настройки редактора, правила и скрипты, не устанавливая расширения |
-| `doctor` | Диагностика компонентов и путей Antigravity |
-| `backup` | Создать ручной бэкап текущего профиля |
-| `restore` | Откатить настройки из резервной копии |
-
----
-
-## Подробная документация
-
-- [Инвентарь всех настроек (Inventory Report)](docs/INVENTORY.md)
-- [Справочник и список 22 расширений](docs/EXTENSIONS.md)
-- [Настройка Docker и GitHub MCP Server](docs/MCP_SETUP.md)
-- [Руководство по учебному движку практики](docs/PRACTICE_WORKFLOW.md)
-- [Настройки курсора, стили и патч Jelly](docs/JELLY_CURSOR_AND_STYLING.md)
-- [Решение проблем (Troubleshooting)](docs/TROUBLESHOOTING.md)
-
----
-
-## Лицензия
-
-MIT License (c) 2026 Mansur.
-
-
-## Обновлённый frontend mentor
-
-Речь, beginner-код, Zustand/Redux/Jotai local/global и честная проверка: [инструкция и границы обновления](docs/MANSUR-MENTOR-UPDATE.md). Для точечного обновления без общего IDE installer: `node scripts/install-mentor-skill.cjs --dry-run`, затем `node scripts/install-mentor-skill.cjs`.
-
-Обновить только mentor глобально из GitHub, без повторной установки тем/расширений/MCP:
+**3. Reload и проверка.** Ctrl+Shift+P → Developer: Reload Window → открой новый чат. В терминале:
 
 ```bash
-npx --yes github:safarovmurod/mansur-setup mentor --dry-run
-npx --yes github:safarovmurod/mansur-setup mentor
+npx --yes github:safarovmurod/mansur-setup#mancho-setting-antigraviti doctor
 ```
 
-В уже клонированной папке сначала `git pull --ff-only`, затем `node scripts/install-mentor-skill.cjs`.
-`changed: []` означает, что текущие исходники уже установлены; новые правила попадут глобально после обновления копии репозитория.
-Автоматический фоновый watcher/commit/push не включается. Для переноса новых предпочтений сначала обновляются `skills/mansur-frontend-mentor` и связанные templates, затем install/проверка и выбранный Git commit/push.
+Doctor различает отсутствующие файлы, настройку MCP и неподтверждённые live tools. Секреты не показывает. Затем попроси небольшой код или работу по screenshot. Для подтверждения чтения skill нужны фактические read/tool traces; одно название skill в ответе не доказывает чтение.
 
-Полный IDE setup рассчитан на Windows. Mentor использует домашнюю папку пользователя; профиль Antigravity должен читать `~/.gemini/config/skills`. Наличие файлов не подтверждает работу чата: после установки Reload Window и read-only smoke prompt из инструкции.
+## Если ZIP или clone уже скачан
+
+Открой распакованную/клонированную папку в Antigravity, затем:
+
+```bash
+node bin/mansur-setup.js install --name "Мансур"
+node bin/mansur-setup.js doctor
+```
+
+Не запускай несуществующий install-skill.cjs в корне. `scripts/install-mentor-skill.cjs` — отдельный точечный updater mentor, а не полная установка. Простое скачивание файлов не устанавливает их глобально.
+
+## Что внутри
+
+| Часть | Source | Глобальная установка |
+|---|---|---|
+| Все skills и catalog | skills/, config/skill-inventory.json | ~/.gemini/config/skills/, skill-inventory.json |
+| GSD agents / workflows / runtime | agents/, resources/gsd-core/ | ~/.gemini/config/agents/, ~/.gemini/antigravity/gsd-core/ |
+| Rules и договор | rules/*.template.md | ~/.gemini/GEMINI.md, ~/.gemini/config/rules/ |
+| Editor, тема Dark+, Material Icons, IntelliSense | config/settings.json | Antigravity IDE User/settings.json |
+| Shortcuts / locale | config/keybindings.json, argv.json | User/keybindings.json, ~/.antigravity-ide/argv.json |
+| Practice engine | scripts/practice-engine.mjs | ~/.gemini/scripts/ |
+| 22 extensions | config/extensions.json, extensions/mansur-github-panel/ | Через настоящий Antigravity CLI / VSIX |
+| Browser verification | skills/agent-browser/, rules/mansur-02.template.md | agent-browser CLI + Chrome for Testing |
+| MCP templates | config/mcp/ | Создаются только если файл отсутствует; credentials вводятся локально |
+
+Все имена skills: [SKILLS.md](docs/SKILLS.md). Все 22 названия, ID, назначение, terminal/UI установка и settings: [EXTENSIONS.md](docs/EXTENSIONS.md). Шрифт JetBrains Mono: [официальная загрузка](https://www.jetbrains.com/lp/mono/). Установи .ttf двойным кликом → Install, если шрифт отсутствует; fallback Cascadia Code/monospace останется до установки. Installer не пишет в vendor bundle IDE и не обещает копирование injection при смене версии IDE.
+
+## Screenshot → сайт → проверка
+
+Отправь screenshot и реальные assets агенту. Он сохраняет выбранный стек (новый frontend по умолчанию JSX+MUI), собирает дизайн, запускает dev server, снимает actual screenshot при сопоставимом viewport и сравнивает layout/spacing/fonts/colors/images. agent-browser предоставляет screenshots, click, errors и pixel diff. Исправления проверяются повторно. Нет mobile/assets — агент указывает, чего не хватает; API по screenshot не придумывается.
+
+## Что каждый подключает сам
+
+- Вход в Antigravity, GitHub или сторонний provider — личный аккаунт пользователя.
+- GitHub PAT / Docker или hosted MCP; optional PAL/Clink / AI provider credentials: [MCP_SETUP.md](docs/MCP_SETUP.md). Пошаговые ссылки там. Наши токены, пароли, cookies, профили Chrome, mssql connections и auth database не входят в package.
+- Ввод имени через `--name` меняет setup rules. Личные исторические references mentor остаются историей Мансура; это специально персональный профиль, а не обезличенная чужая история.
+
+## Обновления и свои дополнения
+
+Повтори команду install из шага 2, затем Reload. Новые bundles из skills/, *.template.md из rules/ и runtime scripts из scripts/ будут установлены автоматически. Runtime scripts — .js/.mjs/.cjs/.ps1; repo-only install-* не копируются в профиль. Внутренние dependencies нового script должны тоже быть добавлены и проверены. Правила/skills сами по себе не публикуют изменения и не запускают background watcher.
+
+Если работаешь через clone: `git pull --ff-only`, затем локальный install. Dirty/diverged clone сначала проверь; не делай reset/stash/discard автоматически. Новые extensions добавляются в config/extensions.json с правильным ID; их настройка — в config/settings.json. Secret/auth configs никогда не копировать в source. Shared skills для других tools сохранены и перечислены отдельно в SKILLS.md.
+
+## Диагностика и восстановление
+
+```bash
+node bin/mansur-setup.js backup
+node bin/mansur-setup.js restore
+npm test
+```
+
+Backup лежит в ~/.gemini/backups/, включает настройки, rules, skills, scripts, agents, GSD runtime и оба MCP configs. Restore восстанавливает сохранённые файлы; не удаляет новые неизвестные файлы и не откатывает marketplace/npm установки. Это восстановление конфигурации, не полный rollback операционной системы.
+
+`--skip-extensions` пропускает gallery installation; custom panel проверяется отдельно. `--skip-agent-browser` пропускает browser installation. Эти flags означают частичную установку и не подтверждают готовность пропущенных компонентов. `npm warn allow-scripts` сначала проверяй через `agent-browser --version`; не разрешай все scripts вслепую.
+
+## Проверки и ограничения
+
+[Фактический audit report](docs/AUDIT-2026-10-02.md), [third-party sources](docs/THIRD_PARTY.md). Windows проверяется отдельно от Linux/macOS: полный installer использует Windows paths, поэтому cross-platform full setup не объявляется поддержанным. Browser CLI сам имеет Linux вариант `agent-browser install --with-deps`, но это не делает весь этот setup Linux-compatible. MCP auth, чтение skills AI, Tailwind IntelliSense и format-on-save в UI требуют отдельной runtime проверки. Нельзя подменять её unit tests или CLI exit code 0.

@@ -1,5 +1,7 @@
 # Полный инвентарь настроек Antigravity IDE (Inventory Report)
 
+Исторический inventory первоначального export. Актуальный audit: [AUDIT-2026-10-02.md](AUDIT-2026-10-02.md), все 77 bundles: [SKILLS.md](SKILLS.md), MCP варианты: [MCP_SETUP.md](MCP_SETUP.md). Старые заявления UI/автоодобрения ниже не заменяют новую runtime проверку и правила авторизации текущего агента.
+
 В данном документе зафиксированы все фактические настройки, правила, расширения и утилиты, обнаруженные в среде Antigravity IDE пользователя **Мансур**, с указанием источника, статуса, способа переноса и верификации.
 
 ---
@@ -13,7 +15,7 @@
 | 3 | **Шрифт и типографика** | JetBrains Mono, Cascadia Code (15px, ligatures, line-height 25) | `settings.json` | Системный шрифт | Настройки применяются автоматически, ссылка на шрифт в документации | Визуально в редакторе | Ручная установка шрифта (или через winget) |
 | 4 | **Native Smooth Cursor & Caret** | `editor.cursorBlinking: smooth`, `cursorSmoothCaretAnimation: on` | `settings.json` | Встроенный движок редактора | Автоматически через `settings.json` | Плавное движение курсора при наборе | Нет |
 | 5 | **Отключение Jelly Ripple** | `jellyCursor.rippleEnabled: false`, `animationMode: off` | `settings.json` и `checkAndRepairJellyCursor.js` | `config/jelly-cursor/*` | Автоматически через `settings.json` и состояние | Отсутствие ряби от кликов мыши | Нет |
-| 6 | **Jelly Cursor Patch & Recovery** | `C:\Users\safar\.antigravity\jelly-cursor` | Наличие скриптов и маркера в `workbench.html` | `checkAndRepairJellyCursor.js`, `jelly-cursor.template.js` | Переносится в `%USERPROFILE%\.antigravity\jelly-cursor` | Вызов `repair-ripple.cmd` | Нет |
+| 6 | **Jelly Cursor Patch & Recovery** | `%USERPROFILE%\.antigravity\jelly-cursor` | Наличие скриптов и маркера в `workbench.html` | `checkAndRepairJellyCursor.js`, `jelly-cursor.template.js` | Переносится в `%USERPROFILE%\.antigravity\jelly-cursor` | Вызов `repair-ripple.cmd` | Нет |
 | 7 | **Prettier & Format on Save** | `editor.defaultFormatter: esbenp.prettier-vscode`, `formatOnSave: true` | `settings.json` | `esbenp.prettier-vscode` | Автоматически через `settings.json` и установку расширения | Форматирование при сохранении `.tsx/.ts/.json` | Нет |
 | 8 | **IntelliSense & Tailwind** | `tailwindCSS.*`, `npm-intellisense`, `path-intellisense` | `settings.json` | Расширения Tailwind, Path/Npm intellisense | Автоматически через `settings.json` + расширения | Автокомплит классов Tailwind в `className` | Нет |
 | 9 | **Клавиатурные комбинации** | `%APPDATA%\Antigravity IDE\User\keybindings.json` | Фактический файл keybindings | `config/keybindings.json` | Автоматически объединяются без дублирования | Нажатие `Ctrl+Alt+F` (Format), `Ctrl+Space` (Suggest) | Нет |
@@ -28,7 +30,7 @@
 | 18 | **Локализация IDE (Русский язык)** | `%USERPROFILE%\.antigravity-ide\argv.json` | `"locale": "ru"` в `argv.json` | `config/argv.json`, `ms-ceintl.vscode-language-pack-ru` | Автоматически объединяется в `argv.json` | Интерфейс на русском языке | Перезапуск IDE |
 | 19 | **Авто-одобрение команд терминала** | `chat.tools.terminal.autoApprove` в `settings.json` | `settings.json` | Встроенный чат Antigravity | Автоматически в `settings.json` | Команды `npm run dev/build/lint`, `git status/add/commit` не требуют подтверждения | Нет |
 | 20 | **Сторонние / устаревшие утилиты** | `.antigravity-ide\extensions\.obsolete` | `runtime-monitor`, `ai-structure-reviewer`, `mansur-inline-autocomplete` | — | **Исключены** (были помечены obsolete, не используются) | Проверено отсутствие в активных расширениях | — |
-| 21 | **Пакет antigravity-manager** | `C:\Users\safar\AppData\Roaming\npm\antigravity` (остаточные файлы) | Ошибка `npm install -g antigravity-manager` в терминале | — | **Исключен** (сторонний прокси-сервер для ротации токенов, не относящийся к настройке IDE) | См. анализ ошибки в TROUBLESHOOTING.md | — |
+| 21 | **Пакет antigravity-manager** | `%USERPROFILE%\AppData\Roaming\npm\antigravity` (остаточные файлы) | Ошибка `npm install -g antigravity-manager` в терминале | — | **Исключен** (сторонний прокси-сервер для ротации токенов, не относящийся к настройке IDE) | См. анализ ошибки в TROUBLESHOOTING.md | — |
 
 ---
 

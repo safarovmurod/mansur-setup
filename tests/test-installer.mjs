@@ -16,6 +16,49 @@ const { restoreBackup, listBackups } = require('../lib/backup.js');
 const { getEnvironmentPaths } = require('../lib/paths.js');
 const { install: installMentor, restore: restoreMentor } = require('../scripts/install-mentor-skill.cjs');
 
+test('Invalid destination JSON stops before any settings or rules write', (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'setup-invalid-'));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  const customRoots = { userProfile: home, appData: path.join(home, 'Roaming'), localAppData: path.join(home, 'Local') };
+  const env = getEnvironmentPaths(customRoots);
+  fs.mkdirSync(path.dirname(env.settingsJson), { recursive: true });
+  fs.writeFileSync(env.settingsJson, '{"keep":true}');
+  fs.writeFileSync(env.keybindingsJson, '{broken');
+  assert.throws(() => runInstaller({ customRoots, skipExtensions: true, repoRoot, log: () => {} }), /JSONC parse error/);
+  assert.equal(fs.readFileSync(env.settingsJson, 'utf8'), '{"keep":true}');
+  assert.equal(fs.existsSync(path.join(env.geminiDir, 'GEMINI.md')), false);
+});
+
+test('New skill, rule and script are discovered without installer code edits; foreign global text survives', (t) => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'setup-future-'));
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const source = path.join(base, 'source');
+  for (const name of ['config', 'rules', 'skills', 'scripts', 'agents', 'resources', 'extensions']) fs.cpSync(path.join(repoRoot, name), path.join(source, name), { recursive: true });
+  fs.mkdirSync(path.join(source, 'skills', 'future-demo'));
+  fs.writeFileSync(path.join(source, 'skills', 'future-demo', 'SKILL.md'), '---\nname: future-demo\ndescription: Future task skill\n---\nRead actual files.\n');
+  fs.writeFileSync(path.join(source, 'scripts', 'future-demo.mjs'), 'export const future = true;\n');
+  fs.writeFileSync(path.join(source, 'rules', 'future-demo.template.md'), '---\ntrigger: always_on\n---\nPreserve future rule.\n');
+  const home = path.join(base, 'User Profile');
+  const customRoots = { userProfile: home, appData: path.join(home, 'Roaming'), localAppData: path.join(home, 'Local') };
+  const env = getEnvironmentPaths(customRoots);
+  const globalFile = path.join(env.geminiDir, 'GEMINI.md');
+  fs.mkdirSync(path.dirname(globalFile), { recursive: true });
+  fs.writeFileSync(globalFile, 'Keep my foreign instruction.\n');
+  const options = { customRoots, repoRoot: source, skipExtensions: true, log: () => {} };
+  assert.equal(runInstaller(options).success, true);
+  assert.ok(fs.existsSync(path.join(env.geminiSkillsDir, 'future-demo', 'SKILL.md')));
+  assert.ok(fs.existsSync(path.join(env.geminiScriptsDir, 'future-demo.mjs')));
+  assert.ok(fs.existsSync(path.join(env.geminiRulesDir, 'future-demo.md')));
+  assert.ok(JSON.parse(fs.readFileSync(path.join(env.geminiConfigDir, 'skill-inventory.json'), 'utf8')).skills.includes('future-demo'));
+  const first = fs.readFileSync(globalFile, 'utf8');
+  assert.ok(first.includes('Keep my foreign instruction.'));
+  assert.equal(runInstaller(options).success, true);
+  assert.equal(fs.readFileSync(globalFile, 'utf8'), first);
+  const primary = JSON.parse(fs.readFileSync(path.join(env.geminiConfigDir, 'mcp_config.json'), 'utf8'));
+  assert.equal(primary.mcpServers['github-mcp-server'].disabled, true);
+  assert.ok(fs.existsSync(path.join(env.geminiDir, 'antigravity', 'mcp_config.json')));
+});
+
 test('Mentor global autoload preserves an existing project and supports preview, repeat and restore', (t) => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'mentor-global-'));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
@@ -91,6 +134,12 @@ test('Installer end-to-end in isolated environment with spaces in path', (t) => 
   );
 
   // 3. Clean Installation test
+  const primaryMcp = path.join(envPaths.geminiConfigDir, 'mcp_config.json');
+  const secondaryMcp = path.join(envPaths.geminiDir, 'antigravity', 'mcp_config.json');
+  for (const file of [primaryMcp, secondaryMcp]) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, '{"mcpServers":{"foreign":{"disabled":true}}}');
+  }
   const installLogs = [];
   const installResult = runInstaller({
     displayName: 'Алишер',
@@ -102,6 +151,14 @@ test('Installer end-to-end in isolated environment with spaces in path', (t) => 
   });
 
   assert.equal(installResult.success, true);
+  for (const file of [primaryMcp, secondaryMcp]) assert.equal(fs.readFileSync(file, 'utf8'), '{"mcpServers":{"foreign":{"disabled":true}}}');
+  const catalog = JSON.parse(fs.readFileSync(path.join(envPaths.geminiConfigDir, 'skill-inventory.json'), 'utf8'));
+  assert.ok(catalog.skills.includes('gsd-fast'));
+  assert.ok(catalog.skills.includes('project-coding-rules'));
+  for (const name of catalog.skills) assert.ok(fs.existsSync(path.join(envPaths.geminiSkillsDir, name, 'SKILL.md')));
+  assert.ok(fs.existsSync(path.join(envPaths.geminiDir, 'antigravity', 'gsd-core', 'workflows', 'fast.md')));
+  assert.ok(fs.existsSync(path.join(envPaths.geminiConfigDir, 'agents', 'gsd-executor.md')));
+  assert.match(fs.readFileSync(path.join(envPaths.geminiRulesDir, 'mansur-skills-auto.md'), 'utf8'), /trigger: always_on/);
   assert.equal(fs.existsSync(envPaths.settingsJson), true, 'settings.json should exist');
   assert.equal(fs.existsSync(envPaths.keybindingsJson), true, 'keybindings.json should exist');
   assert.equal(fs.existsSync(envPaths.argvJson), true, 'argv.json should exist');
@@ -129,6 +186,11 @@ test('Installer end-to-end in isolated environment with spaces in path', (t) => 
   assert.ok(mentorGemini.includes('без /skill'));
   assert.equal(fs.existsSync(path.join(envPaths.geminiSkillsDir, 'mansur-practice', 'SKILL.md')), true);
   assert.equal(fs.existsSync(path.join(envPaths.geminiSkillsDir, 'vercel-react-best-practices', 'SKILL.md')), true);
+  assert.equal(fs.existsSync(path.join(envPaths.geminiSkillsDir, 'agent-browser', 'SKILL.md')), true);
+  assert.equal(fs.existsSync(path.join(envPaths.geminiSkillsDir, 'agent-browser', 'metadata.json')), true);
+  assert.equal(fs.existsSync(path.join(envPaths.geminiSkillsDir, 'agent-browser', 'LICENSE')), true);
+  assert.ok(fs.readFileSync(path.join(envPaths.geminiRulesDir, 'mansur-02.md'), 'utf8').includes('Design and browser verification'));
+  assert.ok(fs.readFileSync(path.join(envPaths.geminiDir, 'GEMINI.md'), 'utf8').includes('agent-browser — AUTO-ACTIVATE'));
 
   // Verify scripts deployment
   assert.equal(fs.existsSync(path.join(envPaths.geminiScriptsDir, 'practice-engine.mjs')), true);

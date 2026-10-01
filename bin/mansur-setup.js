@@ -13,6 +13,7 @@ function parseArgs(args) {
     displayName: 'Мансур',
     dryRun: false,
     skipExtensions: false,
+    skipAgentBrowser: false,
     backupDir: null,
     help: false,
     version: false,
@@ -29,6 +30,8 @@ function parseArgs(args) {
       result.dryRun = true;
     } else if (arg === '--skip-extensions') {
       result.skipExtensions = true;
+    } else if (arg === '--skip-agent-browser') {
+      result.skipAgentBrowser = true;
     } else if (arg === '--name' || arg === '-n') {
       if (args[i + 1] && !args[i + 1].startsWith('-')) {
         result.displayName = args[++i];
@@ -37,6 +40,8 @@ function parseArgs(args) {
       result.displayName = arg.slice(7);
     } else if (!arg.startsWith('-')) {
       positional.push(arg);
+    } else {
+      throw new Error('Unknown option: ' + arg);
     }
   }
 
@@ -70,6 +75,7 @@ OPTIONS:
   --name, -n <name>   Set your preferred display name (default: "Мансур")
   --dry-run, -d       Preview changes without writing any files
   --skip-extensions   Configure settings & rules without downloading extensions
+  --skip-agent-browser Skip browser CLI/runtime installation
   --help, -h          Show help message
   --version, -v       Show package version
 
@@ -147,13 +153,13 @@ function main() {
       break;
     }
 
-    case 'install':
-    default: {
+    case 'install': {
       try {
         const res = runInstaller({
           displayName: opts.displayName,
           dryRun: opts.dryRun,
           skipExtensions: opts.skipExtensions,
+          skipAgentBrowser: opts.skipAgentBrowser,
         });
         process.exit(res.success ? 0 : 1);
       } catch (err) {
@@ -162,6 +168,9 @@ function main() {
       }
       break;
     }
+    default:
+      console.error('Unknown command: ' + opts.command);
+      process.exit(1);
   }
 }
 

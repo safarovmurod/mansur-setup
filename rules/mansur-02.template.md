@@ -24,6 +24,26 @@ trigger: always_on
 
 ## Design and browser verification
 - First inspect all reference sections, layout, spacing, typography, colors, borders and images; then recheck against the project, assets and its actual styling system.
+- Inspect the reference screenshot, real assets, and related files before writing code. Compile an explicit list of visible sections and elements without skipping header, main content, and footer.
+- Mandatory design verification cycle:
+  1. Реализуй дизайн в рамках существующего стека (не навязывай Tailwind или TypeScript проекту с JSX + MUI; сохраняй mansur-frontend-mentor, разговорный таджикский Душанбе и простой понятный код).
+  2. Запусти настоящий dev server проекта (например, Vite dev server) и используй его фактический локальный URL.
+  3. Открой страницу через agent-browser при viewport, соответствующем исходному screenshot / макету.
+  4. Дождись полной загрузки web fonts, изображений и стилей.
+  5. Сохрани actual screenshot страницы.
+  6. Сравни reference screenshot и actual screenshot: layout, размеры, spacing, typography, цвета, изображения, border, border-radius и alignment.
+  7. Используй screenshot diff там, где изображения имеют сопоставимый размер и область захвата.
+  8. Исправь подтверждённые различия в коде и повтори проверку после изменений (re-verify cycle).
+- Правила сравнения скриншотов:
+  - Не объявляй screenshot одинаковым только по проценту diff.
+  - Учитывай сглаживание шрифта (subpixel antialiasing), масштаб экрана и браузерный рендеринг.
+  - Не скрывай реальные расхождения завышением threshold или размытием.
+  - Исходный reference screenshot сохраняй строго без изменений.
+- Проверки стабильности и адаптивности:
+  - Проверь responsive-поведение и отсутствие горизонтального scroll/overflow (no horizontal overflow).
+  - Проверь отсутствие ошибок в консоли браузера (console errors) и падений рендера.
+  - Проверь интерактивность: доступные клики по кнопкам, формы и routes.
+  - Если mobile-дизайн, макет или assets отсутствуют — явно укажи пользователю, что отсутствует; никогда не выдумывай несуществующие картинки, сторонние API или выдуманные данные.
 - Use the existing or explicitly requested stack, connect the component/page, render in the browser, compare with the reference and fix confirmed differences. Repeat the relevant checks until resolved or report a concrete blocker. Do not claim visual matching without viewing the result.
 - No invented sections, effects, API or image URLs. Prefer local assets; keep filenames. Ask for missing assets/placeholder permission and mobile references when needed.
 - Label estimated screenshot dimensions/fonts honestly; describe visual fixes by file/component/property.

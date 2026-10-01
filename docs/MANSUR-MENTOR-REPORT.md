@@ -41,10 +41,10 @@
 - `~/.gemini/config/rules/mansur-01.md`: current language preference.
 - `~/.gemini/config/rules/mansur-02.md`: старый forced TS/Tailwind заменён текущим договором.
 - `~/.gemini/config/skills/mansur-practice/SKILL.md`: practice branch больше не выбирает stack; metadata не доказательство auto-consumption.
-- В `C:/Users/safar/Desktop/Новая папка` та же skill копия, 3 rule templates, practice, новый `scripts/install-mentor-skill.cjs`, docs, короткая ссылка README. В `lib/installer.js` добавлено копирование mentor; остальные шаги общего installer не переписаны.
+- В `%USERPROFILE%/Desktop/Новая папка` та же skill копия, 3 rule templates, practice, новый `scripts/install-mentor-skill.cjs`, docs, короткая ссылка README. В `lib/installer.js` добавлено копирование mentor; остальные шаги общего installer не переписаны.
 
-Live backup: `C:/Users/safar/.gemini/backups/mansur-mentor-2026-10-01T18-47-32-429Z-9aea3a8c`.
-Portable source backup: `C:/Users/safar/.gemini/backups/mansur-mentor-source-2026-10-01T18-45-25-402Z`.
+Live backup: `%USERPROFILE%/.gemini/backups/mansur-mentor-2026-10-01T18-47-32-429Z-9aea3a8c`.
+Portable source backup: `%USERPROFILE%/.gemini/backups/mansur-mentor-source-2026-10-01T18-45-25-402Z`.
 Исходный downloaded plugin SKILL SHA-256 сохранён; cache не редактировался. При reload может существовать и старая одноимённая plugin copy: выбирать user-owned обновлённый path, а конфликт loader проверять отдельно.
 
 ## Реальные проверки
