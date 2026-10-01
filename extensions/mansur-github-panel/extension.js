@@ -61,20 +61,11 @@ function refreshTerminals(delay = 100) {
   terminalRefreshTimer = setTimeout(() => {
     terminalRefreshTimer = null;
     try {
-      const terms = (vscode && vscode.window && Array.isArray(vscode.window.terminals))
-        ? vscode.window.terminals
-        : [];
-      if (terms.length > 0) {
-        for (const t of terms) {
-          if (t && typeof t.sendText === 'function') {
-            t.sendText('', true);
-          }
-        }
-      } else {
-        const target = vscode && vscode.window && vscode.window.activeTerminal;
-        if (target && typeof target.sendText === 'function') {
-          target.sendText('', true);
-        }
+      const target = (vscode && vscode.window && vscode.window.activeTerminal)
+        ? vscode.window.activeTerminal
+        : null;
+      if (target && typeof target.sendText === 'function') {
+        target.sendText('', true);
       }
     } catch (_) {}
   }, delay);
@@ -160,7 +151,37 @@ async function detectDefaultBranch(cwd) {
     await gitExec(['rev-parse', '--verify', 'refs/heads/master'], cwd);
     return 'master';
   } catch {}
+  try {
+    const lo = await gitExec(['branch', '--format=%(refname:short)'], cwd);
+    const first = lo.split(/\r?\n/).map(s => s.trim()).filter(Boolean)[0];
+    if (first) return first;
+  } catch {}
   return 'main';
+}
+
+async function findSafeSwitchTarget(cwd, branchesToDelete = []) {
+  const toDeleteSet = new Set(branchesToDelete);
+  let localBranches = [];
+  try {
+    const lo = await gitExec(['branch', '--format=%(refname:short)'], cwd);
+    localBranches = lo.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  } catch {}
+
+  // 1. Prefer main
+  if (localBranches.includes('main') && !toDeleteSet.has('main')) {
+    return 'main';
+  }
+  // 2. Otherwise master
+  if (localBranches.includes('master') && !toDeleteSet.has('master')) {
+    return 'master';
+  }
+  // 3. Otherwise first existing local branch not in deletion set
+  for (const b of localBranches) {
+    if (!toDeleteSet.has(b)) {
+      return b;
+    }
+  }
+  return null;
 }
 
 function checkSecretFiles(files) {
@@ -309,15 +330,24 @@ class GithubPanelProvider {
   constructor() {
     this._view = null;
     this._busy = false;
+    this._viewDisposables = [];
+    this._refreshTimer = null;
+    this._collecting = false;
   }
 
   resolveWebviewView(webviewView) {
+    // Clean up previous view disposables if re-resolving
+    for (const d of this._viewDisposables) {
+      try { d.dispose(); } catch (_) {}
+    }
+    this._viewDisposables = [];
+
     this._view = webviewView;
     log('GITHUB EXPLORER VIEW RESOLVED');
     webviewView.webview.options = { enableScripts: true };
     webviewView.webview.html = this._getHtml();
 
-    webviewView.webview.onDidReceiveMessage(async msg => {
+    const msgDisp = webviewView.webview.onDidReceiveMessage(async msg => {
       if (!msg || typeof msg.command !== 'string' || this._busy) return;
       const mutation = ['push', 'newBranch', 'switchBranch', 'deleteBranches'].includes(msg.command);
       if (mutation) this._busy = true;
@@ -355,20 +385,50 @@ class GithubPanelProvider {
           await this._sendState();
         }
       }
-    }, null, disposables);
+    });
+    if (msgDisp && typeof msgDisp.dispose === 'function') {
+      this._viewDisposables.push(msgDisp);
+    }
 
-    webviewView.onDidChangeVisibility(() => {
-      if (webviewView.visible) this._sendState();
-    }, null, disposables);
+    if (typeof webviewView.onDidChangeVisibility === 'function') {
+      const visDisp = webviewView.onDidChangeVisibility(() => {
+        if (webviewView.visible) this.refresh();
+      });
+      if (visDisp && typeof visDisp.dispose === 'function') {
+        this._viewDisposables.push(visDisp);
+      }
+    }
+
+    if (typeof webviewView.onDidDispose === 'function') {
+      const dispDisp = webviewView.onDidDispose(() => {
+        for (const d of this._viewDisposables) {
+          try { d.dispose(); } catch (_) {}
+        }
+        this._viewDisposables = [];
+        this._view = null;
+      });
+      if (dispDisp && typeof dispDisp.dispose === 'function') {
+        this._viewDisposables.push(dispDisp);
+      }
+    }
 
     this._sendState();
   }
 
   async refresh() {
-    if (this._view) await this._sendState();
+    if (!this._view) return;
+    if (this._refreshTimer) clearTimeout(this._refreshTimer);
+    this._refreshTimer = setTimeout(() => {
+      this._refreshTimer = null;
+      if (!this._busy && !this._collecting) {
+        this._sendState();
+      }
+    }, 150);
   }
 
   async _sendState() {
+    if (this._collecting) return;
+    this._collecting = true;
     try {
       const s = await collectState();
       s.busy = this._busy;
@@ -378,6 +438,8 @@ class GithubPanelProvider {
       this._postMessage({ type: 'state', state: s, branches });
     } catch (e) {
       this._postMessage({ type: 'error', text: e.message });
+    } finally {
+      this._collecting = false;
     }
   }
 
@@ -679,12 +741,20 @@ class GithubPanelProvider {
       return;
     }
 
-    // If active branch is to be deleted, switch back to default branch first
+    // If active branch is to be deleted, safely determine and switch to safe branch first
     if (branchesToDelete.includes(s.branch)) {
+      const safeTarget = await findSafeSwitchTarget(cwd, branchesToDelete);
+      if (!safeTarget) {
+        throw new Error('Не найдена безопасная ветка для переключения перед удалением активной ветки. Удаление отменено.');
+      }
       try {
-        await gitExec(['switch', defaultBranch], cwd);
+        await gitExec(['switch', safeTarget], cwd);
       } catch (err) {
-        throw new Error(`Не удалось переключиться на ${defaultBranch} перед удалением: ${err.message}`);
+        throw new Error(`Не удалось переключиться на ${safeTarget} перед удалением: ${err.message}`);
+      }
+      const switchedBranch = await getCurrentBranch(cwd);
+      if (switchedBranch !== safeTarget) {
+        throw new Error(`Переключение на "${safeTarget}" не подтверждено. Удаление отменено.`);
       }
     }
 
@@ -705,13 +775,15 @@ class GithubPanelProvider {
         }
       }
 
-      // 2. Delete remote branch on origin if exists
-      try {
-        await gitExec(['push', 'origin', '--delete', b], cwd);
-      } catch (err) {
-        if (!err.message.includes('remote ref does not exist') && !err.message.includes('unable to delete')) {
-          errMsgs.push(`remote: ${err.message}`);
-          bSuccess = false;
+      // 2. Delete remote branch on origin only if remote exists
+      if (s.remote) {
+        try {
+          await gitExec(['push', 'origin', '--delete', b], cwd);
+        } catch (err) {
+          if (!err.message.includes('remote ref does not exist') && !err.message.includes('unable to delete')) {
+            errMsgs.push(`remote: ${err.message}`);
+            bSuccess = false;
+          }
         }
       }
 
@@ -1430,7 +1502,23 @@ function activate(context) {
 }
 
 function deactivate() {
-  panelProvider = null;
+  if (terminalRefreshTimer) {
+    clearTimeout(terminalRefreshTimer);
+    terminalRefreshTimer = null;
+  }
+  if (panelProvider) {
+    if (panelProvider._refreshTimer) {
+      clearTimeout(panelProvider._refreshTimer);
+      panelProvider._refreshTimer = null;
+    }
+    if (Array.isArray(panelProvider._viewDisposables)) {
+      for (const d of panelProvider._viewDisposables) {
+        try { d.dispose(); } catch (_) {}
+      }
+      panelProvider._viewDisposables = [];
+    }
+    panelProvider = null;
+  }
   for (const d of disposables) {
     try { d.dispose(); } catch (_) {}
   }
@@ -1444,6 +1532,7 @@ module.exports = {
   collectState,
   getDetailedBranches,
   detectDefaultBranch,
+  findSafeSwitchTarget,
   checkSecretFiles,
   countUnmergedCommits,
   gitExec,

@@ -16,6 +16,7 @@ const {
   collectState,
   getDetailedBranches,
   detectDefaultBranch,
+  findSafeSwitchTarget,
   checkSecretFiles,
   countUnmergedCommits,
 } = panelModule;
@@ -205,6 +206,66 @@ test('GitHub Panel Complete Suite — Handlers, Guards, Push, Delete, Secrets', 
   assert.ok(fakeWebviewView.webview.html.includes('NEW BRANCH'), 'HTML contains NEW BRANCH block');
   assert.ok(fakeWebviewView.webview.html.includes('MY BRANCH'), 'HTML contains MY BRANCH block');
   assert.ok(fakeWebviewView.webview.html.includes('DELETE BRANCH'), 'HTML contains DELETE BRANCH block');
+
+  // Test 15: findSafeSwitchTarget logic
+  const safeTarget1 = await findSafeSwitchTarget(repoDir, ['main']);
+  assert.equal(safeTarget1, null, 'If main is to be deleted and no other branch exists, return null');
+
+  git(repoDir, ['branch', 'feature-alpha']);
+  const safeTarget2 = await findSafeSwitchTarget(repoDir, ['main']);
+  assert.equal(safeTarget2, 'feature-alpha', 'Picks alternative local branch if main is in delete list');
+
+  const safeTarget3 = await findSafeSwitchTarget(repoDir, ['feature-alpha']);
+  assert.equal(safeTarget3, 'main', 'Prefers main if main is available');
+  git(repoDir, ['branch', '-D', 'feature-alpha']);
+
+  // Test 16: Local-only repo without origin remote
+  const localOnlyRepo = path.join(baseDir, 'local-only-repo');
+  fs.mkdirSync(localOnlyRepo, { recursive: true });
+  git(localOnlyRepo, ['init', '-b', 'main']);
+  fs.writeFileSync(path.join(localOnlyRepo, 'local.txt'), 'local content');
+  git(localOnlyRepo, ['add', '--all']);
+  git(localOnlyRepo, ['commit', '-m', 'Initial local commit']);
+
+  const localState = await collectState(localOnlyRepo);
+  assert.equal(localState.isRepo, true, 'isRepo must be true');
+  assert.equal(localState.remote, null, 'remote should be null for local-only repo');
+  assert.equal(localState.branch, 'main', 'current branch is main');
+
+  // Test 17: detectDefaultBranch in repo with neither main nor master (e.g. "trunk")
+  const trunkRepo = path.join(baseDir, 'trunk-repo');
+  fs.mkdirSync(trunkRepo, { recursive: true });
+  git(trunkRepo, ['init', '-b', 'trunk']);
+  fs.writeFileSync(path.join(trunkRepo, 'file.txt'), 'trunk');
+  git(trunkRepo, ['add', '--all']);
+  git(trunkRepo, ['commit', '-m', 'Init trunk']);
+  const trunkDefault = await detectDefaultBranch(trunkRepo);
+  assert.equal(trunkDefault, 'trunk', 'detectDefaultBranch should detect "trunk" when no main/master exists');
+
+  // Test 18: Provider re-resolve lifecycle does not leak disposables
+  let disposedCount = 0;
+  provider.resolveWebviewView({
+    webview: {
+      options: {},
+      html: '',
+      postMessage: () => {},
+      onDidReceiveMessage: () => ({ dispose: () => { disposedCount++; } }),
+    },
+    onDidChangeVisibility: () => ({ dispose: () => { disposedCount++; } }),
+    onDidDispose: () => ({ dispose: () => { disposedCount++; } }),
+  });
+  // Re-resolve
+  provider.resolveWebviewView({
+    webview: {
+      options: {},
+      html: '',
+      postMessage: () => {},
+      onDidReceiveMessage: () => ({ dispose: () => { disposedCount++; } }),
+    },
+    onDidChangeVisibility: () => ({ dispose: () => { disposedCount++; } }),
+    onDidDispose: () => ({ dispose: () => { disposedCount++; } }),
+  });
+  assert.ok(disposedCount >= 2, 'Previous disposables must be disposed upon re-resolution');
 
   panelModule.deactivate();
 });
