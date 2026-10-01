@@ -56,16 +56,25 @@ function log(msg) {
 
 let terminalRefreshTimer = null;
 
-function refreshTerminals(delay = 120) {
+function refreshTerminals(delay = 100) {
   if (terminalRefreshTimer) clearTimeout(terminalRefreshTimer);
   terminalRefreshTimer = setTimeout(() => {
     terminalRefreshTimer = null;
     try {
-      const target = (vscode && vscode.window && vscode.window.activeTerminal)
-        ? vscode.window.activeTerminal
-        : (vscode && vscode.window && vscode.window.terminals && vscode.window.terminals[0]);
-      if (target && typeof target.sendText === 'function') {
-        target.sendText('', true);
+      const terms = (vscode && vscode.window && Array.isArray(vscode.window.terminals))
+        ? vscode.window.terminals
+        : [];
+      if (terms.length > 0) {
+        for (const t of terms) {
+          if (t && typeof t.sendText === 'function') {
+            t.sendText('', true);
+          }
+        }
+      } else {
+        const target = vscode && vscode.window && vscode.window.activeTerminal;
+        if (target && typeof target.sendText === 'function') {
+          target.sendText('', true);
+        }
       }
     } catch (_) {}
   }, delay);
@@ -207,6 +216,7 @@ async function getDetailedBranches(cwd, defaultBranch, currentBranch) {
       return a.localeCompare(b);
     });
 
+  const systemProtected = new Set(['main', 'master', defaultBranch].filter(Boolean));
   const protectedNames = new Set(['main', 'master', defaultBranch, currentBranch].filter(Boolean));
 
   return allNames.map(name => {
@@ -223,6 +233,7 @@ async function getDetailedBranches(cwd, defaultBranch, currentBranch) {
       location,
       isCurrent: name === currentBranch,
       isProtected: protectedNames.has(name),
+      isSystemProtected: systemProtected.has(name),
     };
   });
 }
@@ -647,11 +658,11 @@ class GithubPanelProvider {
     if (s.error) throw new Error(s.error);
 
     const defaultBranch = s.defaultBranch || 'main';
-    const forbidden = new Set(['main', 'master', defaultBranch, s.branch].filter(Boolean));
+    const forbidden = new Set(['main', 'master', defaultBranch].filter(Boolean));
 
     for (const b of branchesToDelete) {
       if (forbidden.has(b)) {
-        throw new Error(`Ветку "${b}" удалять запрещено (защищённая или текущая ветка).`);
+        throw new Error(`Ветку "${b}" удалять запрещено (защищённая ветка).`);
       }
     }
 
@@ -666,6 +677,15 @@ class GithubPanelProvider {
     if (confirm !== 'Удалить') {
       this._postMessage({ type: 'status', text: 'Удаление отменено.' });
       return;
+    }
+
+    // If active branch is to be deleted, switch back to default branch first
+    if (branchesToDelete.includes(s.branch)) {
+      try {
+        await gitExec(['switch', defaultBranch], cwd);
+      } catch (err) {
+        throw new Error(`Не удалось переключиться на ${defaultBranch} перед удалением: ${err.message}`);
+      }
     }
 
     const deleted = [];
@@ -1254,7 +1274,7 @@ function updateDeleteList(branches, current) {
   const container = document.getElementById('deleteChecklist');
   container.innerHTML = '';
 
-  const deletable = (branches || []).filter(b => !b.isProtected && b.name !== current);
+  const deletable = (branches || []).filter(b => !b.isSystemProtected && b.name !== 'main' && b.name !== 'master');
 
   if (deletable.length === 0) {
     container.innerHTML = '<div style="font-size:11px;color:var(--vscode-descriptionForeground);padding:4px;">Нет веток для удаления</div>';
@@ -1272,7 +1292,7 @@ function updateDeleteList(branches, current) {
     cb.onchange = updateDeleteBtnState;
 
     const nameSpan = document.createElement('span');
-    nameSpan.textContent = b.name;
+    nameSpan.textContent = b.name === current ? (b.name + ' (активный)') : b.name;
 
     const delBtn = document.createElement('button');
     delBtn.className = 'del-icon-btn';
