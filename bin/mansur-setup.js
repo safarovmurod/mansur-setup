@@ -66,6 +66,7 @@ USAGE:
 COMMANDS:
   install             Apply the complete Antigravity setup (default)
   mentor              Update global frontend mentor and its rules only
+  ai-rules            Update Codex + Antigravity rules, preserve other settings
   doctor              Diagnose prerequisites, paths, and settings health
   backup              Create a manual backup of current settings & rules
   restore [dir]       Restore previous settings from backup
@@ -89,10 +90,10 @@ EXAMPLES:
 
 function main() {
   const args = process.argv.slice(2);
-  if (args[0] === 'mentor') {
+  if (args[0] === 'mentor' || args[0] === 'ai-rules') {
     const { spawnSync } = require('node:child_process');
     const result = spawnSync(process.execPath, [
-      path.resolve(__dirname, '../scripts/install-mentor-skill.cjs'),
+      path.resolve(__dirname, args[0] === 'mentor' ? '../scripts/install-mentor-skill.cjs' : '../scripts/install-agent-rules.cjs'),
       ...args.slice(1),
     ], { stdio: 'inherit' });
     if (result.error) console.error(result.error.message);

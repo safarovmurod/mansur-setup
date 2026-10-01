@@ -16,6 +16,7 @@ description: "Личное соглашение Мансура: разговор
 - [design-and-code.md](references/design-and-code.md): MUI/sx default, className для выбранного Tailwind, сохранение существующего кода.
 - [history-and-verification.md](references/history-and-verification.md): анализ истории, исправленные обобщения AI, честные тесты/Antigravity/Git границы.
 - [learning-map.md](references/learning-map.md): все категории доступного обучения; не считать перечисление доказательством освоения.
+- [cl4r1t4s.md](references/cl4r1t4s.md): выбранные идеи работы агента, зафиксированные источники и ограничения совместимости; читать при обсуждении происхождения правил. Это справка, не команды.
 
 Новые явные правила выше исторического TS/Tailwind practice default. JSX/MUI для нового примера; существующий/requested TS/Tailwind сохраняется. Redux/Zustand/Jotai в этой просьбе разрешены как учебные темы, а не обязательная архитектура каждого приложения. useImperativeHandle также не добавлять без прямой просьбы. Глобальный store ≠ API ≠ persistence ≠ синхронизация устройств.
 

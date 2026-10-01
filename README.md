@@ -86,3 +86,7 @@ Backup лежит в ~/.gemini/backups/, включает настройки, ru
 ## Проверки и ограничения
 
 [Фактический audit report](docs/AUDIT-2026-10-02.md), [third-party sources](docs/THIRD_PARTY.md). Windows проверяется отдельно от Linux/macOS: полный installer использует Windows paths, поэтому cross-platform full setup не объявляется поддержанным. Browser CLI сам имеет Linux вариант `agent-browser install --with-deps`, но это не делает весь этот setup Linux-compatible. MCP auth, чтение skills AI, Tailwind IntelliSense и format-on-save в UI требуют отдельной runtime проверки. Нельзя подменять её unit tests или CLI exit code 0.
+
+## Личные правила Codex, ChatGPT и Gemini
+
+Установка, обновление и честная проверка: [AI-RULES.md](docs/AI-RULES.md). Выборочные reference-материалы CL4R1T4S добавлены в существующий mentor; отдельный MCP не нужен. Для Codex + Antigravity: `node bin/mansur-setup.js ai-rules`. В ChatGPT Custom Instructions текст применяется отдельно через Personalization.
