@@ -51,9 +51,13 @@ test('New skill, rule and script are discovered without installer code edits; fo
   assert.ok(fs.existsSync(path.join(env.geminiRulesDir, 'future-demo.md')));
   assert.ok(JSON.parse(fs.readFileSync(path.join(env.geminiConfigDir, 'skill-inventory.json'), 'utf8')).skills.includes('future-demo'));
   const first = fs.readFileSync(globalFile, 'utf8');
+  const repeatedFiles = [globalFile, env.settingsJson, env.keybindingsJson,
+    path.join(env.geminiRulesDir, 'mansur-01.md'), path.join(env.geminiSkillsDir, 'future-demo', 'SKILL.md')];
+  const firstMtimes = repeatedFiles.map(file => fs.statSync(file).mtimeMs);
   assert.ok(first.includes('Keep my foreign instruction.'));
   assert.equal(runInstaller(options).success, true);
   assert.equal(fs.readFileSync(globalFile, 'utf8'), first);
+  assert.deepEqual(repeatedFiles.map(file => fs.statSync(file).mtimeMs), firstMtimes);
   const primary = JSON.parse(fs.readFileSync(path.join(env.geminiConfigDir, 'mcp_config.json'), 'utf8'));
   assert.equal(primary.mcpServers['github-mcp-server'].disabled, true);
   assert.ok(fs.existsSync(path.join(env.geminiDir, 'antigravity', 'mcp_config.json')));

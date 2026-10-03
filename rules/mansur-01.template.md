@@ -1,3 +1,6 @@
+---
+trigger: always_on
+---
 # Development and practice rules
 
 ## Communication, language and natural style

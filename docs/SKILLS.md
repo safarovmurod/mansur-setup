@@ -1,5 +1,7 @@
 # Global skills и их файлы
 
+Кроме skills полный installer теперь ставит четыре unified rule и три guide, включая самостоятельный inline core `mansur-unified-v1`. Для только этих additions используйте `install --rules-only`: [UNIFIED-RULES.md](UNIFIED-RULES.md). Число skills остаётся 77; provider skills из ZIP не становятся новыми installed bundles.
+
 Все 77 Antigravity-совместимых bundles автоматически копируются installer из skills/ в ~/.gemini/config/skills/. GSD 1.15.0 также получает resources/gsd-core и agents/. Личные auth/session/settings.db не экспортируются.
 
 - [agent-browser](../skills/agent-browser/SKILL.md)

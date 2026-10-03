@@ -14,6 +14,8 @@ function parseArgs(args) {
     dryRun: false,
     skipExtensions: false,
     skipAgentBrowser: false,
+    rulesOnly: false,
+    home: null,
     backupDir: null,
     help: false,
     version: false,
@@ -32,6 +34,11 @@ function parseArgs(args) {
       result.skipExtensions = true;
     } else if (arg === '--skip-agent-browser') {
       result.skipAgentBrowser = true;
+    } else if (arg === '--rules-only') {
+      result.rulesOnly = true;
+    } else if (arg === '--home') {
+      if (!args[i + 1] || args[i + 1].startsWith('-')) throw new Error('--home needs a path');
+      result.home = args[++i];
     } else if (arg === '--name' || arg === '-n') {
       if (args[i + 1] && !args[i + 1].startsWith('-')) {
         result.displayName = args[++i];
@@ -72,6 +79,8 @@ COMMANDS:
   doctor              Diagnose prerequisites, paths, and settings health
   backup              Create a manual backup of current settings & rules
   restore [dir]       Restore previous settings from backup
+  unified-uninstall  Remove only the managed unified additions, preserve other setup
+  unified-restore [dir] Restore one unified operation from its private backup
   help                Show this help message
 
 OPTIONS:
@@ -79,6 +88,8 @@ OPTIONS:
   --dry-run, -d       Preview changes without writing any files
   --skip-extensions   Configure settings & rules without downloading extensions
   --skip-agent-browser Skip browser CLI/runtime installation
+  --rules-only        Install/update unified rules and guides without settings, MCP or extensions
+  --home <path>       Explicit user home for rules-only/unified operations (isolated tests)
   --help, -h          Show help message
   --version, -v       Show package version
 
@@ -102,6 +113,10 @@ function main() {
     process.exit(result.status === null ? 1 : result.status);
   }
   const opts = parseArgs(args);
+  if (opts.home && !(opts.command.startsWith('unified-') || (opts.command === 'install' && opts.rulesOnly))) {
+    throw new Error('--home is supported only with install --rules-only or unified operations');
+  }
+  if (opts.rulesOnly && opts.command !== 'install') throw new Error('--rules-only needs install');
 
   if (opts.version) {
     const pkg = require('../package.json');
@@ -117,6 +132,17 @@ function main() {
   const envPaths = getEnvironmentPaths();
 
   switch (opts.command) {
+    case 'unified-uninstall':
+    case 'unified-restore': {
+      try {
+        const unified = require('../lib/unified');
+        const options = { home: opts.home, dryRun: opts.dryRun };
+        if (opts.command === 'unified-restore' && !opts.backupDir) throw new Error('unified-restore requires the explicit backup directory');
+        console.log(JSON.stringify(opts.command === 'unified-uninstall'
+          ? unified.uninstall(options) : unified.restore(opts.backupDir, options), null, 2));
+      } catch (error) { console.error(error.message); process.exitCode = 1; }
+      break;
+    }
     case 'permissions-restore': {
       try {
         if (opts.dryRun) throw new Error('Use permissions --dry-run for preview; restore requires an explicit backup directory');
@@ -179,7 +205,10 @@ function main() {
           dryRun: opts.dryRun,
           skipExtensions: opts.skipExtensions,
           skipAgentBrowser: opts.skipAgentBrowser,
+          rulesOnly: opts.rulesOnly,
+          home: opts.home,
         });
+        if (opts.rulesOnly) console.log(JSON.stringify(res, null, 2));
         process.exit(res.success ? 0 : 1);
       } catch (err) {
         console.error(`\nInstallation failed: ${err.message}`);

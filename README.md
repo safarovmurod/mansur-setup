@@ -1,5 +1,50 @@
 # mansur-setup
 
+Setup Antigravity с глобальными AI rules, full-stack/design guides, безопасным добавлением и обновлением правил, private backup и адресным restore. Общие рекомендации адаптированы из материалов **Claude, Codex, ChatGPT и Claude Design**: это источники рекомендаций, а не модели или программы, которые устанавливает repo.
+
+Новый самостоятельный договор **mansur-unified-v1** охватывает понимание задачи, источники, дизайн, frontend, API, backend, базу, интеграцию, проверки, безопасность и отчёт. Он предназначен для **всех нынешних и будущих моделей, поддерживаемых Antigravity**, без allowlist и смены модели пользователя. Работа каждого будущего runtime не объявляется проверенной.
+
+## Что внутри и как работают новые правила
+
+- `rules/mansur-unified-core.template.md`: `trigger: always_on`. Installer также вставляет **полный текст основы** в свой блок глобального `~/.gemini/GEMINI.md`. Для основы не нужно вручную включать skill или повторять prompt в каждом новом чате.
+- `mansur-unified-full-stack`, `mansur-unified-design`, `mansur-unified-sources`: три helper rule с `trigger: model_decision`. По теме читаются `full-stack.md`, `design.md`, `source-adaptation.md` из `~/.gemini/config/mansur-unified/guides/`; основа не зависит от их ручного чтения.
+- `source-manifest.json`, `source-coverage.csv`, `source-sections.csv`, `requirements-map.csv` в той же папке: provenance, hashes, inventory и карта требований. Raw prompts/ZIP/provider tools не загружаются в каждый чат. Полный clause audit честно остаётся pending.
+- Старые личные rules, mentor/practice, Vercel React guidance, `agent-browser` и 72 GSD workflow bundles сохраняются в полном setup — всего 77 skills. Новые guides не устанавливают чужие provider skills и не требуют запускать все workflows одновременно.
+
+После установки сохраните работу и начните новый чат; если IDE не перечитала файлы, выполните **Developer: Reload Window**, когда это удобно. Проверяйте без `/skill`, attachment и подсказки identifier, например: «Бо мисоли кӯтоҳ фаҳмон, аз форма то API ва база data чӣ хел мерава». Ожидаются простой таджикский, сохранение стека проекта, отсутствие выдуманного API и честная граница mock/persistence. Файлы доказывают установку; новый ответ/context/tool trace нужен для доказательства использования. [Подробная проверка моделей](docs/UNIFIED-RULES.md).
+
+## Добавить или обновить только новые rules и guides
+
+Для уже настроенного Antigravity используйте `--rules-only`: он **не меняет settings, accounts, MCP, permissions, extensions и другие skills**. Нужны Node.js >=24, npm >=10. Из clone/распакованного ZIP, где находятся `package.json` и `bin`:
+
+```bash
+node bin/mansur-setup.js install --rules-only --name "Мансур" --dry-run
+node bin/mansur-setup.js install --rules-only --name "Мансур"
+```
+
+После публикации этих изменений в main ту же установку можно получить из GitHub:
+
+```bash
+npx --yes github:safarovmurod/mansur-setup install --rules-only --name "Мансур"
+```
+
+Сам download/clone ничего не устанавливает. Для update повторите install с актуальным source; в чистом clone сначала `git status`, затем `git pull --ff-only`, без reset/stash/discard ради обновления. Повтор без изменений не пишет файлы и не создаёт лишний backup. Изменённый пользователем managed файл или неизвестный файл с тем же именем останавливает операцию до записи; согласуйте его с backup, не удаляйте личные изменения.
+
+До записи создаётся private backup в `~/.gemini/backups/mansur-unified-*`. Ошибка записи откатывает предыдущие записи и сообщает путь backup. Restore проверяет integrity и отказывается перезаписывать последующие edits. Backup может содержать личные инструкции — не публикуйте его.
+
+```bash
+node bin/mansur-setup.js unified-restore "ПУТЬ_К_BACKUP_ИЗ_РЕЗУЛЬТАТА" --dry-run
+node bin/mansur-setup.js unified-restore "ПУТЬ_К_BACKUP_ИЗ_РЕЗУЛЬТАТА"
+node bin/mansur-setup.js unified-uninstall --dry-run
+node bin/mansur-setup.js unified-uninstall
+```
+
+Uninstall удаляет только зарегистрированные unified файлы и свой GEMINI блок; чужие файлы, поздний сторонний текст и остальные настройки остаются. Он тоже создаёт backup и допускает targeted restore. Это не uninstall всего старого setup/extensions/npm packages и не удаление `.gemini`.
+
+Полный `install` ниже тоже включает новые rules/guides, а полный `backup`/`restore` включает их данные. Он сохраняет более широкое поведение личного профиля, включая описанный ниже MCP Allow. **Для автоматического применения новых rules изменение approvals не требуется.**
+
+**Текущие проверки:** 25 программных тестов прошли без failures/skips: preview/install/repeat/update, кириллица/пробелы, сохранение чужой конфигурации, backup/restore/uninstall, conflicts, integrity и rollback. Отдельный browser smoke проверяет screenshots/diff/click, а не поведение модели. Полный installer рассчитан на Windows; файловые tests дополнительно проверены в Linux cloud. Windows Antigravity, новый чат и смена модели здесь недоступны, прошлые результаты пользователя не заменяют новую проверку. [Точные результаты](docs/UNIFIED-VALIDATION.md), [пути и команды](docs/UNIFIED-RULES.md).
+
 Переносимые настройки Мансура для **Antigravity IDE на Windows**. Здесь вся инструкция: установка, расширения, skills, MCP, практика, обновление и восстановление. Настройки применяются на уровне пользователя для новых и существующих проектов. Ручной `/skill` для личных правил не нужен; агент выбирает подходящие материалы по задаче.
 
 **Граница результата:** три шага устанавливают файлы и доступные расширения. Вход в личные аккаунты, собственный GitHub token и проверка нового ответа AI выполняются отдельно. Успешный installer или Doctor не означает «100% всё работает на любом ПК».
@@ -51,6 +96,7 @@ Installer автоматически:
 - Устанавливает **21 marketplace extension** и локальную **Mansur GitHub Panel** — всего 22 IDs. Недоступное расширение сообщает как ошибку, не объявляет полной установкой.
 - Проверяет/устанавливает **agent-browser 0.38.1** и Chrome for Testing для браузерной проверки.
 - Создаёт MCP templates только при отсутствии соответствующего config; существующие личные MCP configs сохраняет.
+- Добавляет `mansur-unified-v1`: четыре rule, три guide, source maps и самостоятельный inline core в глобальном GEMINI.md.
 
 Для предварительного просмотра без изменений добавьте `--dry-run` к той же команде. Интернет нужен для скачивания пакета, расширений и browser runtime. Не требуется сторонний пакет `antigravity-manager`.
 
@@ -869,7 +915,7 @@ Flags `--skip-extensions` и `--skip-agent-browser` намеренно проп�
 
 ## Что проверено и что осталось личным действием
 
-На Windows Мансура проверены installer/preview/repeat/backup/restore/guards, регистрация 22 extensions, 77 bundles/GSD assets, browser screenshot/click/diff, отдельные MCP initialize/list tools/read calls. Текущая программная suite — 17 тестов; отдельный browser smoke test — 1 тест; Doctor после настройки MCP — 53 passed. Новые тесты проверяют сохранение/повтор/откат глобальных разрешений, private backup, повреждённые данные и отказ на неподтверждённой версии IDE. Отсутствие MCP approval в новом AI-чате после этого обновления отдельно не проверено. Эти результаты не являются тестом каждого нового ПК или каждого AI-запроса.
+Прежние Windows отчёты описывают installer/preview/repeat/backup/restore/guards, регистрацию 22 extensions, 77 bundles/GSD assets, browser screenshot/click/diff и отдельные MCP calls. Они сохранены как история, а не повторены в текущей Linux cloud сессии. Текущая suite — 25 программных тестов и отдельный browser smoke test. Unified результаты: [UNIFIED-VALIDATION.md](docs/UNIFIED-VALIDATION.md). Ранее записанные Doctor 53 passed и ответы Codex/Gemini не доказывают применение нового unified набора в IDE.
 
 Codex новый read-only ответ подтвердил обращение, таджикский и простой TSX, а trace — чтение mentor без ручного /skill. Новый Gemini ответ, Tailwind autocomplete и format-on-save в каждой версии IDE/проекте требуют проверки на установленном компьютере. ChatGPT Custom Instructions требуют собственного входа и Save в интерфейсе. Шрифт, GitHub login/token и optional providers принадлежат пользователю; никакие ключи Мансура не экспортируются.
 

@@ -1,5 +1,7 @@
 # Codex, ChatGPT и Gemini: подключение личных правил
 
+Новый общий Antigravity договор `mansur-unified-v1` ставится через `node bin/mansur-setup.js install --rules-only`: [UNIFIED-RULES.md](UNIFIED-RULES.md). Core inline предназначен для всех поддерживаемых моделей без ручного skill. `ai-rules` ниже остаётся отдельной командой старого Codex/mentor набора и не ставит unified guides. Имя источника не означает установку продукта/модели.
+
 В репозитории теперь компактные дополнения для агента и справка по выборочным материалам CL4R1T4S. Чужие system prompts, tools и весь репозиторий не импортируются. Их наличие не добавляет MCP или возможности модели.
 
 ## 1. Установить / обновить Codex и Antigravity

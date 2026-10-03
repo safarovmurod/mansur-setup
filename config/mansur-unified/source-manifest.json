@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "contract": "mansur-unified-v1",
+  "archive": "system_prompts_leaks.zip",
+  "archive_sha256": "f19e70ca9db955c9ac6f3479e6a8c604858984126d5304038e7439c4d4cb2ace",
+  "outer_files": 654,
+  "nested_files": 26,
+  "total_files": 680,
+  "selected_files": 62,
+  "sections": 12901,
+  "kinds": {
+    "text": 674,
+    "binary": 5,
+    "archive": 1
+  },
+  "duplicate_files": 118,
+  "originals_distribution": "Not committed or installed. Preserved separately for local review.",
+  "prepared_windows_outputs": "Not present in supplied ZIP; new rules are authored adaptations, not recovered copies.",
+  "historical_counts": {
+    "selected": 103,
+    "outer": 654,
+    "nested": 26,
+    "sections": 3735,
+    "status": "User-reported prior run; not substituted for this inventory."
+  },
+  "semantic_coverage": "detailed_clause_audit_pending; inventory is not proof of every sentence being implemented",
+  "source_names_are_runtime_allowlist": false,
+  "excluded_active_sources": [
+    "Muse"
+  ]
+}
