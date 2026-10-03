@@ -52,6 +52,6 @@ Uninstall сохраняет чужие файлы и текст вне свое
 
 ## GitHub About → Description
 
-> Antigravity setup with automatic global AI rules, full-stack and design guides, safe installation, updates, backups and restore. Model-independent guidance adapted from Claude, Codex, ChatGPT and Claude Design.
+> ⚡ Antigravity IDE setup: global AI rules, 77 skills, 35 GSD agent roles, 22 extensions, themes, MCP templates, browser testing & backup/restore. 🧠 Model-independent full-stack/design guidance adapted from Claude, Codex, ChatGPT & Claude Design.
 
-Текст соответствует additions и не обещает установку моделей. Read-only `gh api repos/safarovmurod/mansur-setup` отклонён (`403 Forbidden`); Description нельзя назвать обновлённым до подтверждённой записи и повторного чтения. Токен не извлекался и не запрашивался. Готовый текст остаётся здесь для About → Description.
+Текст соответствует additions и не обещает установку моделей. Read-only `gh api repos/safarovmurod/mansur-setup` отклонён (`403 Forbidden`); Description нельзя назвать обновлённым до подтверждённой записи и повторного чтения. Токен не извлекался и не запрашивался. Готовый текст остаётся здесь для About → Description. [Как сохранить и что означают числа](GITHUB-ABOUT.md).

@@ -1,4 +1,39 @@
-# mansur-setup
+# ⚡ Mansur Setup · Antigravity IDE
+
+**🧠 Глобальные AI rules · 🤖 35 ролей GSD · 🧩 77 skills · 🎨 22 расширения · 🔌 MCP · 🛡️ Backup / Restore**
+
+Готовый профиль Antigravity для разработки и обучения: настройки редактора, тема и иконки, AI-инструкции, full-stack/design guides, агентные workflows и инструменты проверки. Полная установка рассчитана на Windows; отдельный режим `--rules-only` добавляет или обновляет только unified rules и guides.
+
+| Что получаете | Что это улучшает |
+|---|---|
+| 🧠 Глобальные AI rules + 3 guides | Основные инструкции встроены в `GEMINI.md`; full-stack, design и source guidance помогают разбирать задачу, сохранять стек и проверять результат. |
+| 🤖 35 ролей GSD в 64 файлах | Планирование, реализация, debugging, code review, UI, security и проверка интеграций; набор включает обычные и compact варианты. |
+| 🧩 77 skills + GSD Core 1.15.0 | Workflows от идеи и плана до выполнения, документации и проверки; mentor и practice помогают учиться на примерах. |
+| 🎨 Dark+ + Material Icon Theme | Единый вид редактора, native smooth cursor, format-on-save; профиль рекомендует отдельно установить JetBrains Mono. |
+| 🛠️ 22 extension IDs | Prettier, Tailwind IntelliSense, Error Lens, React snippets и локальная Mansur GitHub Panel. |
+| 🔌 GitHub / GSD / Sequential Thinking MCP | Templates и инструкции подключения; GitHub требует собственной авторизации, наличие шаблона не подтверждает соединение. |
+| 🌐 agent-browser | Реальные browser actions, screenshots, click и visual diff для проверки интерфейса. |
+| 🛡️ Preview, update, backup и restore | Предварительный просмотр, повторная установка для обновления и восстановление. Scoped unified install дополнительно защищает пользовательские правки и поддерживает uninstall. |
+
+### 🤖 Какие агенты включены
+
+| Задача | Примеры готовых GSD-инструкций |
+|---|---|
+| План и этапы | [Planner](agents/gsd-planner.md), [Roadmapper](agents/gsd-roadmapper.md), [Plan checker](agents/gsd-plan-checker.md) |
+| Код и исправления | [Executor](agents/gsd-executor.md), [Code fixer](agents/gsd-code-fixer.md), [Code reviewer](agents/gsd-code-reviewer.md) |
+| Поиск причины ошибок | [Debugger](agents/gsd-debugger.md), [Codebase mapper](agents/gsd-codebase-mapper.md) |
+| Интерфейс и дизайн | [UI researcher](agents/gsd-ui-researcher.md), [UI auditor](agents/gsd-ui-auditor.md) |
+| Проверка результата | [Verifier](agents/gsd-verifier.md), [Integration checker](agents/gsd-integration-checker.md), [Security auditor](agents/gsd-security-auditor.md) |
+
+Это инструкции для ролей в workflows, а не 35 установленных моделей или постоянно работающих процессов. Полный набор — в [agents/](agents/), skills — в [каталоге](docs/SKILLS.md).
+
+### 🧠 Какие модели и источники используются
+
+Модель выбирается в Antigravity из доступных вашему аккаунту. Общие rules предназначены для нынешних и будущих поддерживаемых моделей; совместимость каждого runtime требует отдельной проверки.
+
+Источники адаптированных рекомендаций: **Claude** (материалы с именами Fable 5.1, Opus 5.5, Sonnet 5.5), **Codex / ChatGPT** (GPT-6 Astra, GPT-6.1 Sol) и **Claude Design**. Это названия предоставленных материалов, а не подтверждённый список доступных моделей Antigravity. Setup устанавливает настройки и инструкции; аккаунты, подписки и сами модели подключаются отдельно. [Происхождение и границы адаптации](config/mansur-unified/guides/source-adaptation.md).
+
+**Проверено:** 25 программных тестов, browser smoke test и GitHub `npx` install для rules-only. Живой запуск нового набора в Windows Antigravity и переключение моделей здесь не проверены. [Результаты](docs/UNIFIED-VALIDATION.md) · [Установка и восстановление](docs/UNIFIED-RULES.md) · [Текст GitHub About](docs/GITHUB-ABOUT.md).
 
 Setup Antigravity с глобальными AI rules, full-stack/design guides, безопасным добавлением и обновлением правил, private backup и адресным restore. Общие рекомендации адаптированы из материалов **Claude, Codex, ChatGPT и Claude Design**: это источники рекомендаций, а не модели или программы, которые устанавливает repo.
 
