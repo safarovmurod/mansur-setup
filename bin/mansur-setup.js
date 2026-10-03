@@ -14,6 +14,8 @@ function parseArgs(args) {
     dryRun: false,
     skipExtensions: false,
     skipAgentBrowser: false,
+    skipFont: false,
+    skipPermissions: false,
     rulesOnly: false,
     home: null,
     backupDir: null,
@@ -34,6 +36,10 @@ function parseArgs(args) {
       result.skipExtensions = true;
     } else if (arg === '--skip-agent-browser') {
       result.skipAgentBrowser = true;
+    } else if (arg === '--skip-font') {
+      result.skipFont = true;
+    } else if (arg === '--skip-permissions') {
+      result.skipPermissions = true;
     } else if (arg === '--rules-only') {
       result.rulesOnly = true;
     } else if (arg === '--home') {
@@ -80,7 +86,7 @@ COMMANDS:
   backup              Create a manual backup of current settings & rules
   restore [dir]       Restore previous settings from backup
   unified-uninstall  Remove only the managed unified additions, preserve other setup
-  unified-restore [dir] Restore one unified operation from its private backup
+  unified-restore [dir] Undo latest completed unified operation; directory is optional
   help                Show this help message
 
 OPTIONS:
@@ -88,14 +94,17 @@ OPTIONS:
   --dry-run, -d       Preview changes without writing any files
   --skip-extensions   Configure settings & rules without downloading extensions
   --skip-agent-browser Skip browser CLI/runtime installation
+  --skip-font         Skip Windows font download/registration
+  --skip-permissions  Preserve approvals; recommended inside Antigravity terminal
   --rules-only        Install/update unified rules and guides without settings, MCP or extensions
   --home <path>       Explicit user home for rules-only/unified operations (isolated tests)
   --help, -h          Show help message
   --version, -v       Show package version
 
 EXAMPLES:
-  npx --yes github:safarovmurod/mansur-setup install --name "Мансур"
+  npx --yes github:safarovmurod/mansur-setup install --skip-permissions --name "Мансур"
   npx --yes github:safarovmurod/mansur-setup install --dry-run
+  npx --yes github:safarovmurod/mansur-setup unified-restore --dry-run
   npx --yes github:safarovmurod/mansur-setup mentor --dry-run
   npx --yes github:safarovmurod/mansur-setup doctor
 `);
@@ -137,7 +146,6 @@ function main() {
       try {
         const unified = require('../lib/unified');
         const options = { home: opts.home, dryRun: opts.dryRun };
-        if (opts.command === 'unified-restore' && !opts.backupDir) throw new Error('unified-restore requires the explicit backup directory');
         console.log(JSON.stringify(opts.command === 'unified-uninstall'
           ? unified.uninstall(options) : unified.restore(opts.backupDir, options), null, 2));
       } catch (error) { console.error(error.message); process.exitCode = 1; }
@@ -166,6 +174,10 @@ function main() {
     }
 
     case 'backup': {
+      if (opts.dryRun) {
+        console.log(`[DRY-RUN] Would create a manual setup backup under ${envPaths.backupsDir}; no files written.`);
+        process.exit(0);
+      }
       console.log('Creating manual backup of Antigravity settings...');
       const bRes = createBackup(envPaths, 'manual');
       console.log(`✓ Backup saved to: ${bRes.backupDir}`);
@@ -186,10 +198,10 @@ function main() {
         console.log(`Restoring most recent backup: ${backups[0].name}`);
       }
       try {
-        const rRes = restoreBackup(targetBackup, envPaths);
-        console.log(`✓ Backup successfully restored from ${targetBackup}`);
-        console.log(`  Restored items: ${rRes.restored.join(', ')}`);
-        console.log('Please reload Antigravity window (Ctrl+Shift+P -> Reload Window).');
+        const rRes = restoreBackup(targetBackup, envPaths, { dryRun: opts.dryRun });
+        console.log(opts.dryRun ? `[DRY-RUN] Would restore backup: ${targetBackup}` : `✓ Backup successfully restored from ${targetBackup}`);
+        console.log(`  ${opts.dryRun ? 'Planned' : 'Restored'} items: ${rRes.restored.join(', ')}`);
+        if (!opts.dryRun) console.log('Please reload Antigravity window (Ctrl+Shift+P -> Reload Window).');
         process.exit(0);
       } catch (err) {
         console.error(`Restore failed: ${err.message}`);
@@ -205,8 +217,11 @@ function main() {
           dryRun: opts.dryRun,
           skipExtensions: opts.skipExtensions,
           skipAgentBrowser: opts.skipAgentBrowser,
+          skipFont: opts.skipFont,
+          skipPermissions: opts.skipPermissions,
           rulesOnly: opts.rulesOnly,
           home: opts.home,
+          log: opts.rulesOnly ? console.error : console.log,
         });
         if (opts.rulesOnly) console.log(JSON.stringify(res, null, 2));
         process.exit(res.success ? 0 : 1);

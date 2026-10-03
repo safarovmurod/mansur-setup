@@ -173,10 +173,71 @@ test('Broad backup includes unified data; restoring pre-install snapshot removes
   unified.install(options);
   const after = createBackup(env, 'after');
   assert.ok(fs.existsSync(path.join(after.backupDir, 'mansur-unified', '.installation.json')));
+  const untouched = snapshot(home);
+  const preview = restoreBackup(before.backupDir, env, { dryRun: true });
+  assert.equal(preview.dryRun, true);
+  assert.deepEqual(snapshot(home), untouched, 'Broad restore preview must not uninstall unified additions or change files');
   restoreBackup(before.backupDir, env);
   assert.equal(fs.existsSync(path.join(home, unified.STATE)), false);
   assert.equal(fs.readFileSync(path.join(home, '.gemini/GEMINI.md'), 'utf8'), 'BEFORE\n');
   assert.equal(fs.readFileSync(path.join(home, '.gemini/config/rules/personal.md'), 'utf8'), 'KEEP');
   restoreBackup(after.backupDir, env);
   assert.deepEqual(unified.install(options).changed, []);
+});
+
+test('CLI restore without a path selects latest completed backup, previews without writes and can undo restore', t => {
+  const { home, options } = fixture(t);
+  let timestamp = Date.now() - 1000;
+  t.mock.method(Date, 'now', () => ++timestamp);
+  put(home, '.gemini/GEMINI.md', 'PERSONAL\n');
+  unified.install(options);
+  const updated = unified.install({ ...options, displayName: 'Алишер' });
+  const before = snapshot(home);
+  const cli = (...args) => JSON.parse(execFileSync(process.execPath,
+    [path.join(root, 'bin/mansur-setup.js'), 'unified-restore', ...args, '--home', home], { encoding: 'utf8' }));
+  const preview = cli('--dry-run');
+  assert.equal(preview.sourceBackup, updated.backup);
+  assert.equal(preview.backup, null);
+  assert.deepEqual(snapshot(home), before);
+  const restored = cli();
+  assert.equal(restored.sourceBackup, updated.backup);
+  assert.match(fs.readFileSync(path.join(home, '.gemini/GEMINI.md'), 'utf8'), /Мансур/);
+  assert.equal(unified.latestBackup({ home }), restored.backup);
+  const undone = unified.restore(undefined, { home });
+  assert.equal(undone.sourceBackup, restored.backup);
+  assert.match(fs.readFileSync(path.join(home, '.gemini/GEMINI.md'), 'utf8'), /Алишер/);
+});
+
+test('Automatic restore excludes interrupted operations and never falls back past a corrupt completed backup', t => {
+  const { home, options } = fixture(t);
+  let timestamp = 1000000000000;
+  t.mock.method(Date, 'now', () => ++timestamp);
+  const installed = unified.install(options);
+  const rename = fs.renameSync;
+  let fail = true;
+  t.mock.method(fs, 'renameSync', (from, to) => {
+    if (fail && to.endsWith('/GEMINI.md')) { fail = false; throw new Error('Interrupted update'); }
+    return rename(from, to);
+  });
+  const before = snapshot(home);
+  assert.throws(() => unified.install({ ...options, displayName: 'Алишер' }), /rolled back/);
+  // Bytes (mtime may change during rollback) must match the original successful operation.
+  for (const [relative, bytes] of before) assert.deepEqual(fs.readFileSync(path.join(home, relative)), bytes);
+  assert.equal(unified.latestBackup({ home }), installed.backup);
+  const updated = unified.install({ ...options, displayName: 'Алишер' });
+  fs.writeFileSync(path.join(updated.backup, 'manifest.json'), '{broken');
+  const current = snapshot(home);
+  assert.throws(() => unified.restore(undefined, { home }), /Invalid newest/);
+  assert.deepEqual(snapshot(home), current);
+});
+
+test('Automatic restore reports missing backups and blocks later edits without changing user files', t => {
+  const { home, options } = fixture(t);
+  assert.throws(() => unified.restore(undefined, { home, dryRun: true }), /No unified backups/);
+  const installed = unified.install(options);
+  fs.appendFileSync(path.join(home, unified.FILES[0]), '\nPersonal later edit');
+  const before = snapshot(home);
+  assert.throws(() => unified.restore(undefined, { home }), /Restore conflict/);
+  assert.deepEqual(snapshot(home), before);
+  assert.ok(fs.existsSync(installed.backup));
 });

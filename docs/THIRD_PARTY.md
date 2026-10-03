@@ -1,6 +1,7 @@
 # Источники и лицензии
 
 - GSD Core 1.15.0: https://github.com/open-gsd/gsd-core, npm `@opengsd/gsd-core@1.15.0`, MIT. Runtime в resources/gsd-core, лицензия resources/gsd-core/LICENSE; global skills и agents экспортированы из этой установленной версии. Исходные команды и инструкции сохранены.
+- JetBrains Mono 2.304: https://github.com/JetBrains/JetBrainsMono/releases/tag/v2.304, SIL Open Font License 1.1. Оригинальный notice — [resources/jetbrains-mono/OFL.txt](../resources/jetbrains-mono/OFL.txt). Font ZIP/TTF не включены в npm package; полный Windows installer загружает официальный release отдельно. SHA-256 ZIP и 16 TTF закреплены в config/font.json; TLS/checksum verification не отключается.
 - agent-browser 0.38.1: https://github.com/vercel-labs/agent-browser, Apache-2.0; skill discovery stub, LICENSE и metadata в skills/agent-browser. Runtime CLI загружается отдельно через npm, браузер через agent-browser install.
 - vercel-react-best-practices: https://github.com/vercel-labs/agent-skills; сохранён локальный установленный bundle. Лицензия указанного upstream применима к его содержимому.
 - mansur-frontend-mentor, mansur-practice, project-coding-rules и setup rules — авторские настройки Мансура.

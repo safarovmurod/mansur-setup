@@ -1,5 +1,7 @@
 # Unified validation — 2026-10-03
 
+Этот отчёт описывает первоначальные 25 tests unified-набора. Последующее расширение до 33 tests, automatic restore, font assets и bootstrap — в [SETUP-AUTOMATION.md](SETUP-AUTOMATION.md).
+
 ## Текущий запуск
 
 Cloud Linux, Node.js 24.19.0, npm 11.9.0, Git 2.52.0, agent-browser 0.38.1 и image-provided Chromium. Windows paths пользователя недоступны. Tests используют synthetic home с пробелами/кириллицей и temporary repositories, не реальный auth/profile пользователя.

@@ -1,5 +1,7 @@
 # MCP: подключение с нуля без экспорта чужих ключей
 
+Для установки из открытого Antigravity terminal рекомендован `install --skip-permissions`: templates/rules устанавливаются, текущие approvals сохраняются. Автоматизация ниже не заменяет личную MCP авторизацию. [Полная установка](../README.md#quick-start).
+
 Installer не переносит credentials, не объединяет два существующих MCP configs и не меняет активную авторизацию. Новому пользователю создаёт disabled hosted GitHub template в ~/.gemini/config/mcp_config.json и GSD/sequential-thinking template в ~/.gemini/antigravity/mcp_config.json. Фактический активный источник проверь в IDE: Agent panel → меню MCP servers / Manage MCP Servers → View raw config. Название меню может отличаться между версиями; редактируй именно открытый IDE файл. Сделай local backup.
 
 ## GitHub — hosted, без Docker

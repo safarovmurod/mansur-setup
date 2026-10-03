@@ -25,18 +25,28 @@
 
 В папке clone/распакованного setup:
 
-```bash
+```powershell
+# Показать план установки правил; никаких файлов не менять.
 node bin/mansur-setup.js install --rules-only --name "Мансур" --dry-run
+# Реально установить или обновить rules/guides с private backup.
 node bin/mansur-setup.js install --rules-only --name "Мансур"
+# Показать удаляемые managed additions; ничего не удалять.
 node bin/mansur-setup.js unified-uninstall --dry-run
+# Удалить только unified additions, сохранив остальной профиль и backup.
 node bin/mansur-setup.js unified-uninstall
-node bin/mansur-setup.js unified-restore "ПУТЬ_К_BACKUP" --dry-run
-node bin/mansur-setup.js unified-restore "ПУТЬ_К_BACKUP"
+# Самостоятельно выбрать последний завершённый backup и показать план restore.
+node bin/mansur-setup.js unified-restore --dry-run
+# Вернуть выбранный backup с проверкой integrity и текущих hashes.
+node bin/mansur-setup.js unified-restore
 ```
+
+Для запуска без локального repo замените `node bin/mansur-setup.js` на `npx --yes github:safarovmurod/mansur-setup`. Это альтернативные способы одного действия. [Пошаговый выбор и Windows bootstrap](../README.md#quick-start).
+
+`unified-restore` без directory автоматически выбирает самый новый завершённый unified backup этого home; результат показывает `sourceBackup`. Новые pending manifests исключаются. Повреждённый завершённый backup не заменяется молча более старым. Старые backups без completion field поддерживаются с прежними проверками всех records/hashes. Explicit directory остаётся дополнительной возможностью для адресного выбора, а не обязательным параметром. Restore сам создаёт backup, поэтому повторный restore отменяет последнюю операцию restore.
 
 Update — тот же install из актуального source. `--home "ПАПКА_ТЕСТОВОГО_ПРОФИЛЯ"` поддерживается только для этих rules-only/unified операций; обычный запуск использует текущий home. Full Windows installer, doctor и permissions не принимают `--home`. Не указывайте home другого пользователя.
 
-`--rules-only` не пишет settings/keybindings/argv, MCP/permissions database, accounts, extensions, Codex AGENTS.md и другие skills. Общий `install` сохраняет прежние более широкие эффекты профиля из README. Для unified auto-context они не нужны. Полный uninstall всех старых настроек не реализован.
+`--rules-only` не пишет settings/keybindings/argv, MCP/permissions database, accounts, extensions, Codex AGENTS.md и другие skills. Общий `install` включает шрифт и остальные настройки профиля из README; `--skip-permissions` сохраняет approvals и рекомендован для открытого IDE. Без этого флага сохраняется прежний MCP Allow режим с требованием закрытого IDE. Для unified auto-context они не нужны. Полный uninstall всех старых настроек не реализован.
 
 Каждая изменяющая операция сохраняет private backup, затем пишет атомарно по файлу. Ошибка сообщает выполненный rollback или неполный rollback с backup path. Repeat без новых source/name сохраняет bytes/mtime. Unknown same-name files, local edits, broken/duplicate markers, symlinks и повреждённый registry останавливают запись. Не пытайтесь решить конфликт удалением пользовательского файла.
 

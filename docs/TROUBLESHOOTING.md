@@ -1,5 +1,7 @@
 # Решение проблем и частые вопросы (Troubleshooting Guide)
 
+Актуальный выбор full/rules-only и команды с пояснениями — в [README](../README.md#quick-start); новые bootstrap/font/restore проверки — в [SETUP-AUTOMATION.md](SETUP-AUTOMATION.md).
+
 ---
 
 ## 1. Анализ ошибки из терминала: `npm install -g antigravity-manager`
