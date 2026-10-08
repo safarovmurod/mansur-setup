@@ -29,7 +29,7 @@ Linux, Node 24.19.0, npm 11.9.0. Тестовые профили изолиро�
 
 | Проверка | Результат и граница |
 |---|---|
-| `npm test` | **37 passed, 0 failed, 0 skipped**. Включает installer/restore, guards, rules, MCP, font bundle/error-report и Doctor settings/inventory проверки. |
+| `npm test` | **38 passed, 0 failed, 0 skipped**. Включает installer/restore, guards, rules, MCP, font bundle/error-report и Doctor settings/inventory и Windows test-profile isolation проверки. Suite также выполнен без global Git config. |
 | Restore без пути | CLI preview без записи; выбор newest completed, recovery/undo restore, pending operation exclusion, corrupt newest stop, no-backup/edited-target errors. |
 | Широкий restore preview | Не меняет bytes/mtime и не удаляет unified additions. |
 | Font orchestration | Проверены dry-run/no-launch, unsupported platform, manifest rejection, 16 bundled checksums, live-output subprocess contract, nonzero/launch failure handling и сохранение исходной ошибки для итогового отчёта. Windows subprocess смоделирован; реальная регистрация этим тестом не доказана. |
@@ -43,6 +43,8 @@ Linux, Node 24.19.0, npm 11.9.0. Тестовые профили изолиро�
 ## Исправления Windows PowerShell — 8 октября 2026
 
 Windows-инструкции и CLI Help используют `npx.cmd`, чтобы restricted Execution Policy не выбирала `npx.ps1`. Bootstrap уже запускает CMD shim; менять политику всей системы не требуется. Font subprocess получает Windows PowerShell module directory, а 16 проверенных TTF теперь входят в package с оригинальной OFL license. Ошибка font stage повторяется в итоговом отчёте вместо одного `exit 1`.
+
+Явный synthetic userProfile изолирует AppData от реального Windows environment; LF policy сохраняет source hashes при checkout в Windows. Git tests сами задают identity во всех временных repos.
 
 Doctor проверяет Node/npm, весь шаблон editor settings, массив keybindings и skill inventory; malformed inventory возвращает failure вместо crash. Browser installation failure сохраняется в итоговом списке failures. Doctor exit 0 означает отсутствие failures, но не отсутствие warnings и не runtime-проверку MCP/chat.
 

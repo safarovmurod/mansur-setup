@@ -223,6 +223,8 @@ test('GitHub Panel Complete Suite — Handlers, Guards, Push, Delete, Secrets', 
   const localOnlyRepo = path.join(baseDir, 'local-only-repo');
   fs.mkdirSync(localOnlyRepo, { recursive: true });
   git(localOnlyRepo, ['init', '-b', 'main']);
+  git(localOnlyRepo, ['config', 'user.name', 'Mansur Test']);
+  git(localOnlyRepo, ['config', 'user.email', 'mansur@example.com']);
   fs.writeFileSync(path.join(localOnlyRepo, 'local.txt'), 'local content');
   git(localOnlyRepo, ['add', '--all']);
   git(localOnlyRepo, ['commit', '-m', 'Initial local commit']);
@@ -236,6 +238,8 @@ test('GitHub Panel Complete Suite — Handlers, Guards, Push, Delete, Secrets', 
   const trunkRepo = path.join(baseDir, 'trunk-repo');
   fs.mkdirSync(trunkRepo, { recursive: true });
   git(trunkRepo, ['init', '-b', 'trunk']);
+  git(trunkRepo, ['config', 'user.name', 'Mansur Test']);
+  git(trunkRepo, ['config', 'user.email', 'mansur@example.com']);
   fs.writeFileSync(path.join(trunkRepo, 'file.txt'), 'trunk');
   git(trunkRepo, ['add', '--all']);
   git(trunkRepo, ['commit', '-m', 'Init trunk']);

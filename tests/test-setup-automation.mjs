@@ -11,7 +11,27 @@ const { ensureJetBrainsMono } = require('../lib/font');
 const { runInstaller } = require('../lib/installer');
 const { installExtension } = require('../lib/extensions');
 const { runDoctor } = require('../lib/doctor');
+const { getEnvironmentPaths } = require('../lib/paths');
 const root = path.resolve(import.meta.dirname, '..');
+
+test('An isolated user profile never inherits real Windows AppData directories', () => {
+  const saved = { APPDATA: process.env.APPDATA, LOCALAPPDATA: process.env.LOCALAPPDATA };
+  try {
+    process.env.APPDATA = path.join(os.tmpdir(), 'foreign-real-roaming');
+    process.env.LOCALAPPDATA = path.join(os.tmpdir(), 'foreign-real-local');
+    const home = path.join(os.tmpdir(), 'isolated-user');
+    const paths = getEnvironmentPaths({ userProfile: home });
+    assert.equal(paths.appData, path.join(home, 'AppData/Roaming'));
+    assert.equal(paths.localAppData, path.join(home, 'AppData/Local'));
+    const explicit = getEnvironmentPaths({ userProfile: home, appData: path.join(home, 'custom-roaming') });
+    assert.equal(explicit.appData, path.join(home, 'custom-roaming'));
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
 
 test('Bundled official fonts match every pinned checksum and include the license', () => {
   const pin = require('../config/font.json');
