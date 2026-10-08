@@ -73,8 +73,9 @@ function showHelp() {
 Mansur Antigravity Setup CLI
 
 USAGE:
-  npx --yes github:safarovmurod/mansur-setup [command] [options]
+  npx.cmd --yes github:safarovmurod/mansur-setup [command] [options]
   node bin/mansur-setup.js [command] [options]
+  Windows PowerShell: use npx.cmd; macOS/Linux rules-only: use npx.
 
 COMMANDS:
   install             Apply the complete Antigravity setup (default)
@@ -94,7 +95,7 @@ OPTIONS:
   --dry-run, -d       Preview changes without writing any files
   --skip-extensions   Configure settings & rules without downloading extensions
   --skip-agent-browser Skip browser CLI/runtime installation
-  --skip-font         Skip Windows font download/registration
+  --skip-font         Skip Windows font installation/registration
   --skip-permissions  Preserve approvals; recommended inside Antigravity terminal
   --rules-only        Install/update unified rules and guides without settings, MCP or extensions
   --home <path>       Explicit user home for rules-only/unified operations (isolated tests)
@@ -102,11 +103,11 @@ OPTIONS:
   --version, -v       Show package version
 
 EXAMPLES:
-  npx --yes github:safarovmurod/mansur-setup install --skip-permissions --name "Мансур"
-  npx --yes github:safarovmurod/mansur-setup install --dry-run
-  npx --yes github:safarovmurod/mansur-setup unified-restore --dry-run
-  npx --yes github:safarovmurod/mansur-setup mentor --dry-run
-  npx --yes github:safarovmurod/mansur-setup doctor
+  npx.cmd --yes github:safarovmurod/mansur-setup install --skip-permissions --name "Мансур"
+  npx.cmd --yes github:safarovmurod/mansur-setup install --skip-permissions --dry-run
+  npx.cmd --yes github:safarovmurod/mansur-setup unified-restore --dry-run
+  npx.cmd --yes github:safarovmurod/mansur-setup mentor --dry-run
+  npx.cmd --yes github:safarovmurod/mansur-setup doctor
 `);
 }
 

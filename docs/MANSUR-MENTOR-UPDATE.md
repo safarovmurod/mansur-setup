@@ -13,8 +13,8 @@ Installer `mentor` и полный `install` устанавливают глоб
 Для скачивания непосредственно из актуального GitHub репозитория:
 
 ```bash
-npx --yes github:safarovmurod/mansur-setup mentor --dry-run
-npx --yes github:safarovmurod/mansur-setup mentor
+npx.cmd --yes github:safarovmurod/mansur-setup mentor --dry-run
+npx.cmd --yes github:safarovmurod/mansur-setup mentor
 ```
 
 Это точечное обновление mentor. Для полного IDE setup на Windows используется команда `install` из README. После изменения source skill в репозитории повторить установку: само редактирование/пуш ещё не обновляет профили остальных пользователей.

@@ -17,7 +17,8 @@ test('Browser renders matching pages and detects a changed background', { timeou
   });
   async function browser(command) {
     // Await the child so this process can still answer the HTTP requests.
-    const result = await run(`agent-browser --session ${session} --json ${command}`, { timeout: 30000, windowsHide: true, maxBuffer: 1024 * 1024 });
+    const result = await run(`agent-browser --session ${session} --json ${command}`, { timeout: 30000, windowsHide: true, maxBuffer: 1024 * 1024,
+      env: { ...process.env, AGENT_BROWSER_SOCKET_DIR: directory } });
     const output = JSON.parse(result.stdout);
     assert.equal(output.success, true, result.stdout);
     return output.data;
@@ -25,6 +26,7 @@ test('Browser renders matching pages and detects a changed background', { timeou
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const url = `http://127.0.0.1:${server.address().port}`;
   const baseline = path.join(directory, 'baseline.png');
+  let testFailed = false;
   try {
     await browser(`open ${url}/baseline`);
     await browser('set viewport 800 600');
@@ -42,8 +44,13 @@ test('Browser renders matching pages and detects a changed background', { timeou
     await browser('click "button"');
     const text = await browser('get text "button"');
     assert.equal(text.text, '1');
+  } catch (error) {
+    testFailed = true;
+    throw error;
   } finally {
-    try { await browser('close'); } finally {
+    try { await browser('close'); } catch (error) {
+      if (!testFailed) throw error;
+    } finally {
       server.closeAllConnections();
       await new Promise(resolve => server.close(resolve));
       fs.rmSync(directory, { recursive: true, force: true });

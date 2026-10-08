@@ -11,7 +11,7 @@
 | 🧠 Глобальные AI rules + 3 guides | Основные инструкции встроены в `GEMINI.md`; full-stack, design и source guidance помогают разбирать задачу, сохранять стек и проверять результат. |
 | 🤖 35 ролей GSD в 64 файлах | Планирование, реализация, debugging, code review, UI, security и проверка интеграций; набор включает обычные и compact варианты. |
 | 🧩 77 skills + GSD Core 1.15.0 | Workflows от идеи и плана до выполнения, документации и проверки; mentor и practice помогают учиться на примерах. |
-| 🎨 Dark+ + Material Icon Theme | Единый вид редактора, native smooth cursor, format-on-save; JetBrains Mono автоматически скачивается, проверяется и устанавливается для текущего Windows-пользователя. |
+| 🎨 Dark+ + Material Icon Theme | Единый вид редактора, native smooth cursor, format-on-save; JetBrains Mono включён в setup, проверяется и устанавливается для текущего Windows-пользователя. |
 | 🛠️ 22 extension IDs | Prettier, Tailwind IntelliSense, Error Lens, React snippets и локальная Mansur GitHub Panel. |
 | 🔌 GitHub / GSD / Sequential Thinking MCP | Templates и инструкции подключения; GitHub требует собственной авторизации, наличие шаблона не подтверждает соединение. |
 | 🌐 agent-browser | Реальные browser actions, screenshots, click и visual diff для проверки интерфейса. |
@@ -56,10 +56,12 @@
 ```powershell
 # Полная установка/обновление: шрифт, тема, extensions, skills, agents и browser.
 # --skip-permissions сохраняет текущие approvals и позволяет запуск внутри открытого IDE.
-npx --yes --loglevel=info --progress=true github:safarovmurod/mansur-setup install --skip-permissions --name "Мансур"
+npx.cmd --yes --loglevel=info --progress=true github:safarovmurod/mansur-setup install --skip-permissions --name "Мансур"
 ```
 
-Если Node/Git ещё нет, запустите следующий блок **вместо команды выше**. Bootstrap скачивает setup и сам вызывает полную установку; повторять install после него не нужно. Для отсутствующих prerequisites нужен `winget` (Windows App Installer). Windows может потребовать своё подтверждение установки; bootstrap не обходит его.
+В Windows PowerShell используйте именно `npx.cmd`: обычный `npx` может выбрать `npx.ps1` и завершиться `PSSecurityException`, если запуск скриптов запрещён. Менять Execution Policy для этой команды не требуется.
+
+Для автоматической проверки prerequisites (в том числе если Node/Git ещё нет) запустите следующий блок **вместо команды выше**. Bootstrap скачивает setup и сам вызывает полную установку; повторять install после него не нужно. Для отсутствующих prerequisites нужен `winget` (Windows App Installer). Windows может потребовать своё подтверждение установки; bootstrap не обходит его.
 
 ```powershell
 # Создать уникальное имя временного bootstrap-файла; личные файлы не перезаписываются.
@@ -79,7 +81,7 @@ Bootstrap проверяет Node >=24 / npm >=10, обновляет PATH дл�
 
 ```powershell
 # Показать план полной установки, ничего не записывать и не скачивать font/extensions/browser.
-npx --yes github:safarovmurod/mansur-setup install --skip-permissions --name "Мансур" --dry-run
+npx.cmd --yes github:safarovmurod/mansur-setup install --skip-permissions --name "Мансур" --dry-run
 ```
 
 Если repo уже скачан через ZIP/clone, откройте терминал в папке с `package.json`:
@@ -102,18 +104,20 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File $mansurBootstrap -DryRun
 
 ### 🎨 Шрифт и оформление устанавливаются автоматически
 
-Полный install скачивает **JetBrains Mono 2.304** из официального release JetBrains, проверяет SHA-256 ZIP и каждого из 16 TTF, устанавливает их в пользовательскую папку Windows Fonts и регистрирует в HKCU. Затем `settings.json` выбирает JetBrains Mono для **редактора и терминала**, Dark+ и Material Icon Theme. `winget install JetBrains.JetBrainsMono` больше не нужен. Повторная установка с теми же font bytes не скачивает ZIP повторно. Отличающиеся личные файлы/регистрации шрифта не перезаписываются; installer сообщает конфликт.
+Полный install включает **JetBrains Mono 2.304**: 16 оригинальных TTF из официального release JetBrains уже находятся в setup. Installer проверяет SHA-256 каждого файла, устанавливает недостающие шрифты в пользовательскую папку Windows Fonts и регистрирует их в HKCU. Отдельный font-download не нужен; только для старого package без bundled TTF есть загрузка официального ZIP с проверкой SHA-256. Затем `settings.json` выбирает JetBrains Mono для **редактора и терминала**, Dark+ и Material Icon Theme. `winget install JetBrains.JetBrainsMono` больше не нужен. Повторная установка с теми же font bytes не скачивает ZIP повторно. Отличающиеся личные файлы/регистрации шрифта не перезаписываются; installer сообщает конфликт.
 
-В терминале видны **10 этапов**, имена skills и прогресс `Skill [1/77] … [77/77] 100%`, имена устанавливаемых extensions, реальный вывод npm/browser и байты/проценты download шрифта. Npm/Git до запуска кода setup показывают свои логи; процент GitHub-download не выдумывается. `100%` у skills означает завершение копирования bundles, а не проверку каждого AI workflow.
+В терминале видны **10 этапов**, имена skills и прогресс `Skill [1/77] … [77/77] 100%`, имена устанавливаемых extensions, реальный вывод npm/browser, проверка bundled шрифтов и байты/проценты download при fallback. Npm/Git до запуска кода setup показывают свои логи; процент GitHub-download не выдумывается. `100%` у skills означает завершение копирования bundles, а не проверку каждого AI workflow.
 
-`--skip-font` отключает загрузку/регистрацию шрифта; профиль всё ещё выбирает JetBrains Mono с fallback. Личные аккаунты, MCP token и подписки подключаются отдельно. Bootstrap и full install не удаляют скачанные prerequisites или установленные fonts при restore.
+`--skip-font` — только временный обход ошибки: он отключает установку/регистрацию шрифта; профиль всё ещё выбирает JetBrains Mono с fallback. Личные аккаунты, MCP token и подписки подключаются отдельно. Bootstrap и full install не удаляют скачанные prerequisites или установленные fonts при restore.
 
 ### ✅ Проверить установленный профиль
 
 ```powershell
 # Найти отсутствующие файлы, prerequisites и проблемы настроек; показать passed/warnings/failures.
-npx --yes github:safarovmurod/mansur-setup doctor
+npx.cmd --yes github:safarovmurod/mansur-setup doctor
 ```
+
+`Doctor` возвращает exit 0 при отсутствии failures; warnings всё равно нужно прочитать. Это проверка файлов и конфигурации, а не подтверждение личной авторизации MCP или применения rules моделью.
 
 Сохраните работу. Если IDE ещё использует старый шрифт/extension, выполните **Ctrl+Shift+P → Developer: Reload Window**; затем начните новый AI-чат. Installer не закрывает ваше окно и не теряет несохранённую работу. Основной core встроен в `~/.gemini/GEMINI.md`: ручной `/skill` для него не нужен. Helper rules используют `model_decision` и три guide по теме. Проверка нового ответа/context trace нужна, чтобы подтвердить применение правил самой моделью.
 
@@ -124,7 +128,7 @@ npx --yes github:safarovmurod/mansur-setup doctor
 
 ```powershell
 # Отдельно разрешить все MCP tools; закрытый IDE нужен для безопасной записи preferences.
-npx --yes github:safarovmurod/mansur-setup permissions
+npx.cmd --yes github:safarovmurod/mansur-setup permissions
 ```
 
 Live-база открытого IDE не редактируется. На неподдерживаемой storage-версии изменение блокируется; настройте нужные permissions в UI вашей версии. [Подробности и отдельный откат](docs/MCP_SETUP.md). Аккаунты/tokens и ограничения проекта/организации не изменяются. [Официальный приоритет Deny > Ask > Allow](https://antigravity.google/docs/permissions).
@@ -139,7 +143,7 @@ Live-база открытого IDE не редактируется. На не�
 
 ```powershell
 # Скачать актуальный setup с GitHub и установить/обновить только новые rules и guides.
-npx --yes github:safarovmurod/mansur-setup install --rules-only --name "Мансур"
+npx.cmd --yes github:safarovmurod/mansur-setup install --rules-only --name "Мансур"
 ```
 
 <details>
@@ -164,9 +168,9 @@ node bin/mansur-setup.js install --rules-only --name "Мансур"
 
 ```powershell
 # Проверить, какой последний завершённый unified backup будет восстановлен; без записи.
-npx --yes github:safarovmurod/mansur-setup unified-restore --dry-run
+npx.cmd --yes github:safarovmurod/mansur-setup unified-restore --dry-run
 # Реально отменить последнюю завершённую операцию unified install/update/uninstall/restore.
-npx --yes github:safarovmurod/mansur-setup unified-restore
+npx.cmd --yes github:safarovmurod/mansur-setup unified-restore
 ```
 
 `sourceBackup` в результате показывает автоматически выбранный backup из `~/.gemini/backups/mansur-unified-*`. Перед записью проверяются его integrity и нынешние hashes файлов. Если backup испорчен или файлы позднее изменены, операция останавливается — ваши edits не перезаписываются. Незавершённые новые операции автоматически не выбираются. Restore создаёт собственный backup: **повторный restore отменяет предыдущий restore**, а не многократно возвращает один и тот же snapshot.
@@ -175,9 +179,9 @@ npx --yes github:safarovmurod/mansur-setup unified-restore
 
 ```powershell
 # Показать список managed unified-файлов и своего GEMINI-блока, которые будут удалены.
-npx --yes github:safarovmurod/mansur-setup unified-uninstall --dry-run
+npx.cmd --yes github:safarovmurod/mansur-setup unified-uninstall --dry-run
 # Удалить этот набор с backup; остальные rules, skills, MCP и настройки сохранить.
-npx --yes github:safarovmurod/mansur-setup unified-uninstall
+npx.cmd --yes github:safarovmurod/mansur-setup unified-uninstall
 ```
 
 <details>
@@ -780,7 +784,7 @@ Shared `.agents\skills` для других инструментов не уда
 
 ```bash
 # Дополнительно обновить personal rules для Codex и Antigravity; тема/расширения/MCP сохраняются.
-npx --yes github:safarovmurod/mansur-setup ai-rules
+npx.cmd --yes github:safarovmurod/mansur-setup ai-rules
 ```
 
 Локально: `node bin/mansur-setup.js ai-rules`. Preview — добавить `--dry-run`. Эта команда обновляет mentor в `.agents\skills` и `.gemini\config\skills`, управляемый блок Codex AGENTS.md и Antigravity rule. Создаёт свой backup `~/.gemini/backups/agent-work-*`; при active `AGENTS.override.md` останавливается до записи. Компактный блок ставится в начало AGENTS.md для стандартного лимита discovery. Существующие инструкции сохраняются.
@@ -955,14 +959,14 @@ GitHub Panel — отдельный UI над Git: CURRENT/NEW BRANCH/MY BRANCH/
 
 ```powershell
 # Сделать дополнительный snapshot settings, rules, skills, scripts, agents и MCP configs.
-npx --yes github:safarovmurod/mansur-setup backup
+npx.cmd --yes github:safarovmurod/mansur-setup backup
 # Показать, что вернётся из последнего setup-backup; ничего не записывать.
-npx --yes github:safarovmurod/mansur-setup restore --dry-run
+npx.cmd --yes github:safarovmurod/mansur-setup restore --dry-run
 # Вернуть файлы последнего setup-backup; путь находится автоматически.
-npx --yes github:safarovmurod/mansur-setup restore
+npx.cmd --yes github:safarovmurod/mansur-setup restore
 ```
 
-В локальной папке вместо `npx --yes github:safarovmurod/mansur-setup` используйте `node bin/mansur-setup.js`; назначение команд одинаковое.
+В локальной папке вместо `npx.cmd --yes github:safarovmurod/mansur-setup` используйте `node bin/mansur-setup.js`; назначение команд одинаковое.
 
 Main installer backup: `%USERPROFILE%\.gemini\backups`; включает settings/rules/skills/scripts/agents/GSD и MCP configs. Restore возвращает сохранённые файлы; не удаляет неизвестные новые файлы, не удаляет npm/marketplace packages и не является полным rollback Windows. Backup с личными configs не публиковать.
 
@@ -977,6 +981,8 @@ Main installer backup: `%USERPROFILE%\.gemini\backups`; включает setting
 | Node 18/20/22 или npm ниже 10 | Запустить Windows bootstrap: он установит/обновит prerequisites через winget; если это заблокировано, поставить официальные Node >=24/npm >=10 отдельно |
 | winget отсутствует / установка prerequisites заблокирована | Проверить Windows App Installer и сообщение системного installer; Node и Git можно поставить с официальных сайтов, затем выполнить npx install |
 | Font SHA-256 mismatch / personal font differs | Не отключать проверку и не удалять личный шрифт вслепую; проверить release/сеть или использовать --skip-font с существующим шрифтом |
+| `npx.ps1` / `PSSecurityException` / выполнение сценариев отключено | Использовать `npx.cmd` вместо `npx`; политика системы не меняется |
+| `Setup returned exit 1` / `Font: … failed` | Это итог, а причина указана в `Font stage … failed` и повторяется в конце установки; см. [разбор ошибок Windows](docs/TROUBLESHOOTING.md#windows-setup-errors) |
 | No unified backups / Restore conflict | Нет завершённой операции для отката либо файлы позже менялись; сохранить edits и согласовать их с выбранным backup |
 | npx не скачал GitHub package | Интернет, наличие Git, доступ к репозиторию и правильный branch в команде |
 | IDE CLI не найден | Установлен ли именно Antigravity IDE; при стандартной установке bin в `%LOCALAPPDATA%\Programs\Antigravity IDE\bin`; найти фактический путь и перезапустить terminal |
@@ -996,7 +1002,7 @@ Flags `--skip-font`, `--skip-extensions` и `--skip-agent-browser` намере�
 
 Прежние Windows отчёты описывают installer/preview/repeat/backup/restore/guards, регистрацию 22 extensions, 77 bundles/GSD assets, browser screenshot/click/diff и отдельные MCP calls. Они сохранены как история, а не повторены в текущей Linux cloud сессии. Текущая suite — **33 программных теста** и отдельный browser smoke test. Новые проверки автоматизации: [SETUP-AUTOMATION.md](docs/SETUP-AUTOMATION.md). Unified результаты: [UNIFIED-VALIDATION.md](docs/UNIFIED-VALIDATION.md). Ранее записанные Doctor 53 passed и ответы Codex/Gemini не доказывают применение нового unified набора в IDE.
 
-Codex новый read-only ответ подтвердил обращение, таджикский и простой TSX, а trace — чтение mentor без ручного /skill. Новый Gemini ответ, Tailwind autocomplete и format-on-save в каждой версии IDE/проекте требуют проверки на установленном компьютере. ChatGPT Custom Instructions требуют собственного входа и Save в интерфейсе. JetBrains Mono теперь устанавливается автоматически полным installer; живой Windows font runtime здесь не проверен. GitHub login/token и optional providers принадлежат пользователю; никакие ключи Мансура не экспортируются.
+Codex новый read-only ответ подтвердил обращение, таджикский и простой TSX, а trace — чтение mentor без ручного /skill. Новый Gemini ответ, Tailwind autocomplete и format-on-save в каждой версии IDE/проекте требуют проверки на установленном компьютере. ChatGPT Custom Instructions требуют собственного входа и Save в интерфейсе. JetBrains Mono включён в package и устанавливается автоматически полным installer; живой Windows font runtime здесь не проверен. GitHub login/token и optional providers принадлежат пользователю; никакие ключи Мансура не экспортируются.
 
 Полный installer рассчитан на Windows; поддержка Linux/macOS целиком не заявляется. В package не входят auth databases, cookies, browser profiles, connection passwords и приватные backup. Оригинальные upstream license/source notices сохраняются в пакете; сама документация здесь не выдаёт наличие файла за фактическую интеграцию.
 

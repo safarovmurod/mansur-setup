@@ -4,6 +4,29 @@
 
 ---
 
+<a id="windows-setup-errors"></a>
+
+## Windows: `npx.ps1` запрещён / `Setup returned exit 1`
+
+Если PowerShell сообщает, что `C:\Program Files\nodejs\npx.ps1` нельзя загрузить, потому что выполнение сценариев отключено, запускайте CMD-обёртку. Она не требует изменения Execution Policy:
+
+```powershell
+npx.cmd --yes --loglevel=info --progress=true github:safarovmurod/mansur-setup install --skip-permissions --name "Мансур"
+```
+
+`Setup returned exit 1; … Doctor is not reported as passed` означает, что один из этапов установки не прошёл. Это сообщение bootstrap, а не первоначальная причина. Если итог содержит `Font: JetBrains Mono installation/verification failed`, смотрите этап и сообщение после него. Font installer сохраняет причину для итогового отчёта, продолжая показывать живой прогресс. Windows PowerShell запускается со своим каталогом modules, чтобы inherited `PSModulePath` от PowerShell 7 не скрывал `Get-FileHash`.
+
+В актуальном setup шрифт уже включён: отдельный download не требуется. При ошибке `Bundled TTF missing or SHA-256 mismatch` скачайте актуальный setup заново; проверка не отключается. Для старого package с ошибкой download проверьте доступ к официальному GitHub release и повторите install. При SHA-256 mismatch или конфликте личного шрифта не удаляйте существующие файлы и не отключайте проверку. Если шрифт уже установлен отдельно и нужно закончить остальные этапы, можно явно пропустить только font step:
+
+```powershell
+npx.cmd --yes github:safarovmurod/mansur-setup install --skip-permissions --skip-font --name "Мансур"
+npx.cmd --yes github:safarovmurod/mansur-setup doctor
+```
+
+`--skip-font` не исправляет font installation и не подтверждает готовность шрифта. Doctor при этом может показать предупреждение о непроверенных TTF. Reload IDE нужен после установки, но не исправляет неудачный download.
+
+---
+
 ## 1. Анализ ошибки из терминала: `npm install -g antigravity-manager`
 
 В истории терминала была зафиксирована попытка установки:
@@ -87,7 +110,7 @@ npm install -g antigravity-manager
 Если вам необходимо вернуть прежнее состояние IDE:
 1. Запустите команду восстановления:
    ```bash
-   npx mansur-antigravity-setup restore
+   npx.cmd --yes github:safarovmurod/mansur-setup restore
    ```
    или выберите конкретную папку из списка:
    ```bash

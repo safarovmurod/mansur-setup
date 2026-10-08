@@ -40,7 +40,7 @@ node bin/mansur-setup.js unified-restore --dry-run
 node bin/mansur-setup.js unified-restore
 ```
 
-Для запуска без локального repo замените `node bin/mansur-setup.js` на `npx --yes github:safarovmurod/mansur-setup`. Это альтернативные способы одного действия. [Пошаговый выбор и Windows bootstrap](../README.md#quick-start).
+Для запуска без локального repo замените `node bin/mansur-setup.js` на `npx.cmd --yes github:safarovmurod/mansur-setup`. Это альтернативные способы одного действия. [Пошаговый выбор и Windows bootstrap](../README.md#quick-start).
 
 `unified-restore` без directory автоматически выбирает самый новый завершённый unified backup этого home; результат показывает `sourceBackup`. Новые pending manifests исключаются. Повреждённый завершённый backup не заменяется молча более старым. Старые backups без completion field поддерживаются с прежними проверками всех records/hashes. Explicit directory остаётся дополнительной возможностью для адресного выбора, а не обязательным параметром. Restore сам создаёт backup, поэтому повторный restore отменяет последнюю операцию restore.
 

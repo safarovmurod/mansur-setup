@@ -1,6 +1,6 @@
 # Оформление редактора, нативный курсор и патч Jelly Cursor
 
-Полный installer теперь автоматически устанавливает проверенный JetBrains Mono и выбирает его для editor/terminal. [Текущая установка](../README.md#quick-start), [font/automation проверки](SETUP-AUTOMATION.md). Обычный setup не патчит vendor bundle; legacy patch разделы ниже не являются обязательным шагом.
+Полный installer теперь автоматически устанавливает включённый в package и проверенный JetBrains Mono и выбирает его для editor/terminal. [Текущая установка](../README.md#quick-start), [font/automation проверки](SETUP-AUTOMATION.md). Обычный setup не патчит vendor bundle; legacy patch разделы ниже не являются обязательным шагом.
 
 В данной сборке реализован премиальный минималистичный стиль интерфейса Antigravity IDE: плавный нативный курсор, чистые направляющие отступов, мягкие индикаторы ошибок и отключение отвлекающих эффектов ряби.
 

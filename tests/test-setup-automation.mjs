@@ -5,11 +5,56 @@ import path from 'node:path';
 import os from 'node:os';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 const require = createRequire(import.meta.url);
 const { ensureJetBrainsMono } = require('../lib/font');
 const { runInstaller } = require('../lib/installer');
 const { installExtension } = require('../lib/extensions');
+const { runDoctor } = require('../lib/doctor');
 const root = path.resolve(import.meta.dirname, '..');
+
+test('Bundled official fonts match every pinned checksum and include the license', () => {
+  const pin = require('../config/font.json');
+  for (const file of pin.files) {
+    const bytes = fs.readFileSync(path.join(root, 'resources/jetbrains-mono/ttf', file.name));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), file.sha256, file.name);
+  }
+  assert.match(fs.readFileSync(path.join(root, 'resources/jetbrains-mono/OFL.txt'), 'utf8'), /SIL OPEN FONT LICENSE/);
+});
+
+test('Doctor reports corrupted skill inventory without crashing or claiming success', t => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'mansur-doctor-inventory-'));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  const file = path.join(home, '.gemini/config/skill-inventory.json');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  for (const bytes of ['{broken', '{"skills":null}', '{"skills":[]}', '{"skills":["../foreign"]}']) {
+    fs.writeFileSync(file, bytes);
+    const result = runDoctor({ customRoots: { userProfile: home }, log: () => {} });
+    assert.equal(result.ok, false);
+    assert.ok(result.failures.some(check => check.category === 'Skills' && check.name === 'Complete catalog'));
+  }
+});
+
+test('Doctor compares the whole managed settings template and rejects non-array keybindings', t => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'mansur-doctor-settings-'));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  const directory = path.join(home, 'AppData/Roaming/Antigravity IDE/User');
+  fs.mkdirSync(directory, { recursive: true });
+  const settings = structuredClone(require('../config/settings.json'));
+  settings['user.foreignSetting'] = 'preserved';
+  const file = path.join(directory, 'settings.json');
+  fs.writeFileSync(file, JSON.stringify(settings));
+  let result = runDoctor({ customRoots: { userProfile: home }, log: () => {} });
+  assert.equal(result.checks.find(check => check.name === 'Managed editor settings').status, 'pass');
+  delete settings['workbench.colorTheme'];
+  fs.writeFileSync(file, JSON.stringify(settings));
+  fs.writeFileSync(path.join(directory, 'keybindings.json'), '{}');
+  result = runDoctor({ customRoots: { userProfile: home }, log: () => {} });
+  const check = result.checks.find(check => check.name === 'Managed editor settings');
+  assert.equal(check.status, 'warn');
+  assert.match(check.detail, /workbench.colorTheme/);
+  assert.ok(result.failures.some(check => check.name === 'keybindings.json valid'));
+});
 
 test('Font preview and unsupported platform never start download or change system files', () => {
   const never = () => { throw new Error('Unexpected process launch'); };
@@ -30,7 +75,8 @@ test('Font Windows process contract streams output and rejects failed verificati
     assert.equal(file, 'powershell.exe');
     assert.equal(options.stdio, 'inherit');
     assert.ok(args.includes('-NonInteractive'));
-    assert.equal(args.at(-1), path.join(root, 'config/font.json'));
+    assert.equal(args[args.indexOf('-ManifestPath') + 1], path.join(root, 'config/font.json'));
+    assert.match(options.env.PSModulePath, /WindowsPowerShell\\v1\.0\\Modules$/);
     assert.ok(args.includes(path.join(root, 'scripts/install-font.ps1')));
     return { status: 0 };
   } });
@@ -38,6 +84,22 @@ test('Font Windows process contract streams output and rejects failed verificati
   assert.equal(result.installed, true); // Simulated process success, not a Windows runtime test.
   assert.throws(() => ensureJetBrainsMono({ platform: 'win32', log: () => {}, run: () => ({ status: 1 }) }), /verification failed/);
   assert.throws(() => ensureJetBrainsMono({ platform: 'win32', log: () => {}, run: () => ({ error: new Error('Missing PowerShell'), status: null }) }), /Missing PowerShell/);
+});
+
+test('Font failure retains the actual stage and reason in the final error and cleans its report', () => {
+  let reportPath;
+  assert.throws(() => ensureJetBrainsMono({ platform: 'win32', log: () => {}, run: (_file, args) => {
+    reportPath = args[args.indexOf('-ErrorReportPath') + 1];
+    fs.writeFileSync(reportPath, JSON.stringify({ stage: 'Download official JetBrains Mono archive', message: 'Connection timed out' }));
+    return { status: 1 };
+  } }), /Download official JetBrains Mono archive: Connection timed out/);
+  assert.equal(fs.existsSync(reportPath), false);
+  assert.throws(() => ensureJetBrainsMono({ platform: 'win32', log: () => {}, run: (_file, args) => {
+    reportPath = args[args.indexOf('-ErrorReportPath') + 1];
+    fs.writeFileSync(reportPath, 'invalid report');
+    return { status: 1 };
+  } }), /verification failed \(exit 1\)/);
+  assert.equal(fs.existsSync(reportPath), false);
 });
 
 test('Invalid font pin is rejected before a subprocess can launch', t => {

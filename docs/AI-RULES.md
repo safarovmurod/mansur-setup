@@ -16,7 +16,7 @@ node bin/mansur-setup.js ai-rules
 Или из основной ветки main, из любого терминала:
 
 ```bash
-npx --yes github:safarovmurod/mansur-setup ai-rules
+npx.cmd --yes github:safarovmurod/mansur-setup ai-rules
 ```
 
 Команда обновляет личный mentor в `~/.agents/skills` и `~/.gemini/config/skills`, добавляет управляемый блок в Codex `~/.codex/AGENTS.md` (или существующий `CODEX_HOME` внутри home) и глобальное правило Antigravity `~/.gemini/config/rules/mansur-agent-work.md`. Существующие инструкции вне своего блока сохраняются. Backup создаётся до записи в `~/.gemini/backups/agent-work-*`; повтор без новых изменений ничего не пишет. Если активен `AGENTS.override.md`, команда останавливается до записи, чтобы не выдавать изменение неактивного AGENTS.md за рабочую настройку. Файлы авторизации, модели, MCP и extensions не меняются.

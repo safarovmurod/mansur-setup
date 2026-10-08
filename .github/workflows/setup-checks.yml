@@ -1,0 +1,41 @@
+name: Setup checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Installer, settings, rules, backup and guards
+        run: npm test
+      - name: Portable font staging checks
+        run: npm run test:powershell
+      - name: Windows PowerShell 5.1 bootstrap preview
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          & .\scripts\bootstrap.ps1 -DryRun
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Windows PowerShell 5.1 font registration and repeat
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $report = Join-Path $env:RUNNER_TEMP 'mansur-font-error.json'
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scripts\install-font.ps1 -ManifestPath .\config\font.json -ErrorReportPath $report
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scripts\install-font.ps1 -ManifestPath .\config\font.json -ErrorReportPath $report
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
