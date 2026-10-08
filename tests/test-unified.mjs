@@ -216,7 +216,7 @@ test('Automatic restore excludes interrupted operations and never falls back pas
   const rename = fs.renameSync;
   let fail = true;
   t.mock.method(fs, 'renameSync', (from, to) => {
-    if (fail && to.endsWith('/GEMINI.md')) { fail = false; throw new Error('Interrupted update'); }
+    if (fail && path.basename(to) === 'GEMINI.md') { fail = false; throw new Error('Interrupted update'); }
     return rename(from, to);
   });
   const before = snapshot(home);
