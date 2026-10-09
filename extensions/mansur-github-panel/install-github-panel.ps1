@@ -2,7 +2,8 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $source=$PSScriptRoot
-$cli=(Get-Command antigravity-ide.cmd -ErrorAction SilentlyContinue).Source
+$cliCommand=Get-Command antigravity-ide.cmd -ErrorAction SilentlyContinue
+$cli=if ($cliCommand) { $cliCommand.Source } else { $null }
 if (-not $cli) { $cli=Join-Path $env:LOCALAPPDATA 'Programs\Antigravity IDE\bin\antigravity-ide.cmd' }
 if (-not (Test-Path -LiteralPath $cli)) { throw 'Antigravity IDE CLI not found' }
 $ideRoot=Split-Path (Split-Path $cli -Parent) -Parent

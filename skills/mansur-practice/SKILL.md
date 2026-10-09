@@ -1,4 +1,4 @@
-﻿---
+---
 name: mansur-practice
 description: >-
   AUTO-ACTIVATE for beginner coding practice: day1, day-2, practice/*, practice-*, redux-practice, test123, learn-hooks, exercise-* and similar learning branches.

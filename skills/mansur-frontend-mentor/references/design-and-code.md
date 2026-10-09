@@ -1,6 +1,6 @@
 # Код, MUI, className и сохранение проекта
 
-Действующий default нового примера: React + JSX + Vite + MUI + React Router + Axios, только реально нужные зависимости. JSX компоненты в .jsx, логика без JSX в .js. Existing TS/Tailwind сохранять; если прямо попросил TS/Tailwind, использовать .tsx/.ts и className. Не переносить old practice default на каждый новый проект.
+Действующий default нового примера: React + JSX + Vite + MUI + React Router + Axios, только реально нужные зависимости. JSX компоненты в .jsx, логика без JSX в .js. В существующем проекте сохранять его стек. TypeScript использовать только по прямой просьбе или в существующем TS-проекте: .tsx/.ts; иначе .jsx/.js. MUI + sx — default; Tailwind + className использовать только по прямой просьбе или при его существующем рабочем использовании. Не переносить old practice default на каждый новый проект.
 
 Действующий договор в current-agreement.md сохранён дословно. Нельзя менять его смысл общими рекомендациями React/performance skills.
 

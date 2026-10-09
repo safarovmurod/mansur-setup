@@ -32,6 +32,33 @@ function snapshot(home) {
   });
 }
 
+test('Exact unregistered unified files/block are adopted with backup while foreign guide edits are rejected', t => {
+  const { home, options } = fixture(t);
+  unified.install(options);
+  fs.unlinkSync(path.join(home, unified.STATE));
+  const before = fs.readFileSync(path.join(home, '.gemini/GEMINI.md'));
+  const result = unified.install(options);
+  assert.ok(result.backup);
+  assert.deepEqual(fs.readFileSync(path.join(home, '.gemini/GEMINI.md')), before);
+  assert.deepEqual(unified.install(options).changed, []);
+  fs.unlinkSync(path.join(home, unified.STATE));
+  const file = path.join(home, '.gemini/config/mansur-unified/guides/design.md');
+  fs.appendFileSync(file, '\nMy personal rule.\n');
+  assert.throws(() => unified.install(options), /Unmanaged/);
+  assert.ok(fs.readFileSync(file, 'utf8').endsWith('My personal rule.\n'));
+});
+
+test('Known previous unified core without a registry migrates to the current core', t => {
+  const { home, options } = fixture(t);
+  const catalog = require('../config/migrations/legacy-payload.json');
+  const original = catalog.unifiedCoreTemplates[0].replaceAll('{{DISPLAY_NAME}}', 'Мансур');
+  put(home, unified.FILES[0], original);
+  const result = unified.install(options);
+  assert.ok(result.backup);
+  assert.notEqual(fs.readFileSync(path.join(home, unified.FILES[0]), 'utf8'), original);
+  assert.ok(fs.existsSync(path.join(home, unified.STATE)));
+});
+
 test('CLI preview/install/repeat: inline contract, UTF-8 paths, every guide/map, no settings or credentials changes', t => {
   const { home } = fixture(t);
   const foreign = ['.gemini/config/rules/foreign.md', '.gemini/config/mcp_config.json', '.gemini/antigravity/mcp_config.json',

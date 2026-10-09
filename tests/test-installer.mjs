@@ -155,7 +155,8 @@ test('Installer end-to-end in isolated environment with spaces in path', (t) => 
   });
 
   assert.equal(installResult.success, true);
-  for (const file of [primaryMcp, secondaryMcp]) assert.equal(fs.readFileSync(file, 'utf8'), '{"mcpServers":{"foreign":{"disabled":true}}}');
+  for (const file of [primaryMcp, secondaryMcp]) assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')).mcpServers.foreign, { disabled: true });
+  assert.ok(JSON.parse(fs.readFileSync(primaryMcp, 'utf8')).mcpServers.gsd, 'Missing templates merged into active MCP config');
   const catalog = JSON.parse(fs.readFileSync(path.join(envPaths.geminiConfigDir, 'skill-inventory.json'), 'utf8'));
   assert.ok(catalog.skills.includes('gsd-fast'));
   assert.ok(catalog.skills.includes('project-coding-rules'));

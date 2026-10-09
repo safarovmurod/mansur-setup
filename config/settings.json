@@ -17,7 +17,6 @@
   "cSpell.language": "en,ru",
   "workbench.colorTheme": "Dark+",
   "workbench.iconTheme": "material-icon-theme",
-  "workbench.statusBar.visible": true,
   "workbench.editor.empty.hint": "hidden",
   "workbench.colorCustomizations": {
     "editorError.foreground": "#f8717166",
@@ -37,8 +36,8 @@
     "editorBracketMatch.background": "#00000000",
     "editorBracketMatch.border": "#00000000"
   },
-  "files.autoSave": "onFocusChange",
-  "files.autoSaveDelay": 1500,
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "file",
   "editor.formatOnPaste": false,

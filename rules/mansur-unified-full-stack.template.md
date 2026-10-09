@@ -1,7 +1,8 @@
 ---
 trigger: model_decision
-description: Frontend, API, backend, database, authentication, uploads, persistence and integration work.
+description: "Mansur full-stack details for backend, API, databases, authentication, uploads, routing, integration, deployment, end-to-end checks or performance. Core rules remain independently active."
 ---
-# Mansur unified full-stack
 
-Для full-stack, API, backend или базы прочитай ~/.gemini/config/mansur-unified/guides/full-stack.md и применяй его вместе с mansur-unified-v1. Сначала изучи существующий контракт и стек. Не выдумывай endpoint/schema/auth; не заменяй пользовательский стек. Проверяй server validation/authorization, persistence и реальный поток, а не только frontend mock. Если guide недоступен, основной договор продолжает действовать; сообщи о недоступном пути. Имена источников не ограничивают выбор runtime модели.
+# Full-stack contextual reference
+
+Read `~/.gemini/config/mansur-unified/guides/full-stack.md` for a relevant full-stack task. This reference supplements the global working contract; it does not require a manual slash command or replace the chosen stack.

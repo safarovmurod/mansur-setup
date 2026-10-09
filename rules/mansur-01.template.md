@@ -1,6 +1,8 @@
 ---
 trigger: always_on
+description: "Mansur communication, beginner teaching and preservation of the current project."
 ---
+
 # Development and practice rules
 
 ## Communication, language and natural style

@@ -20,7 +20,7 @@ Apply the complete original rules from all parts below, in their numbered order.
 
 ## AUTO CONTEXT DETECTION
 
-Before every task, automatically detect context from:
+For code or project work, automatically detect the task-relevant context from:
 - Current file extension (.tsx, .ts, .js, .jsx)
 - Imports in the active file (react, redux, zustand, jotai, axios, etc.)
 - package.json dependencies
@@ -87,8 +87,8 @@ Rules:
 - Minimum tool calls
 - Group related changes into 1–2 logical edits
 - Short output: plan → action → verify → concise report
-- Sequential Thinking MCP: DISABLED
-- Chrome DevTools MCP: DISABLED
+- Sequential Thinking MCP: use only when the current problem requires it; otherwise leave it idle.
+- Chrome DevTools MCP: use when actual browser/visual verification is needed, including small UI fixes; otherwise leave it idle.
 - GSD: lightweight only
 
 ### DEEP MODE (Activated automatically on complexity)
@@ -146,11 +146,12 @@ Work only on the explicitly requested state manager:
 ## SKILL PRIORITY / CONFLICT RESOLUTION
 
 When multiple skills match:
-1. Safety (always first)
-2. Project-specific context (project GEMINI.md if present)
-3. This global GEMINI.md
-4. Specific technology skill (React, Redux, etc.)
-5. Generic fallback
+1. Mandatory platform requirements and actual permission boundaries
+2. The current explicit user request and its scope restrictions
+3. Verified project facts, working logic and applicable project instructions
+4. Mansur's current global agreement and these global preferences
+5. Relevant technology skills within the chosen project stack
+6. Optional generic recommendations
 
 Use minimum necessary skills. Never run 5 skills if 1–2 are enough.
 No conflicts between: GSD, vercel-react-best-practices, mansur-practice, FAST/DEEP modes.

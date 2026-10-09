@@ -42,3 +42,6 @@ dist/
 build/
 *.tgz
 *.vsix
+
+# Audited bundled helper, reproducible from its four source files
+!extensions/mansur-antigravity-stability/mansur-antigravity-stability-*.vsix

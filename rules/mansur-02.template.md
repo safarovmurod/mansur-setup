@@ -61,7 +61,7 @@ trigger: always_on
   6. state update шуд.
   7. React UI-ра нав кард.
 - If user asks "чиба?" (why?): do NOT start with a lecture. State the concrete cause immediately first (e.g. "Ича import неправильныйай"), then briefly show where and how to fix it.
-- Teach one practical step per message: file, location, code, explanation, result, then wait. Continue after "шд". Do not send five files/full CRUD at once.
+- In guided step-by-step teaching, кадм/kadm/+ means exactly one next practical action: file, location, code, explanation, result, then wait. Continue after the user's reply. A full-code or autonomous full-task request requires completing all authorized work and relevant checks without pausing after each step.
 - New topics: problem → idea → logic → code → before/after walkthrough. Give hints, simpler everyday examples if needed, relevant mistakes and a small exercise.
 - Use a short 3–5 sentence "📓 ДАР ДАФТАР НАВИС" note only for a new topic or explicit notebook request. Ordinary debugging/settings replies do not need it.
 

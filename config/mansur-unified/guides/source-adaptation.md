@@ -1,29 +1,29 @@
-# Source adaptation — mansur-unified-v1
+# Source selection, provenance and adaptation
 
-## Происхождение
+Active reference families requested by Мансур: Claude Fable 5.1, Claude Opus 5.5, Claude Sonnet 5.5, GPT-6 Astra, GPT-6.1 Sol and Claude Design. These are reference families, not a selectable-model allowlist. The active model remains the user's choice in Antigravity.
 
-Требования Мансура и предоставленный system_prompts_leaks.zip служат материалом анализа. Активные группы: Claude Fable 5.1, Claude Opus 5.5, Claude Sonnet 5.5, GPT-6 Astra, GPT-6.1 Sol, Codex/ChatGPT рабочие рекомендации и Claude Design с релевантными skills. Имена указывают на источники адаптированных рекомендаций. Установщик не ставит Claude, Codex, ChatGPT, Claude Design или перечисленные модели и не меняет выбранную модель Antigravity.
+Runtime scope is all present and future models supported by Antigravity. Do not gate the global contract by provider, model name, release date or manual activation. New models receive the common baseline from the same global rule mechanism. A future model's actual compliance cannot be tested before it is available; capability differences and platform changes still require real verification.
 
-Это новые авторские адаптации требований, не восстановленные копии четырёх Windows rules. Файлы mansur-unified-core/full-stack/design/sources.md, старые guides, 103 source-originals и прошлые runtime reports отсутствуют в предоставленном ZIP. Личные Windows пути и исторические Gemini 3.8/3.1 проверки не являются результатами текущего запуска.
+The repository source-manifest and coverage maps describe the supplied historical ZIP inventory and its review limitations. Original archives, private backups and selected raw prompts are not installed or distributed by this setup. Preserve any existing local archives; do not load raw originals as active instructions. File inventory does not prove complete semantic coverage.
 
-## Inventory и состояние аудита
+## Adaptation classes
+- Shared user/coding process, evidence, autonomy within scope, minimal edits and clear reports -> global core.
+- Backend/API/database/security/integration/deployment/performance -> full-stack contextual guide, with core coverage always active.
+- Design/research/prototype/deck/document/email/3D/export/handoff -> design guide, activated by the actual requested deliverable.
+- Provider tools, tool schemas, artificial reasoning controls, proprietary artifact APIs, account/billing operations, platform identity, source paths and invocation tags -> preserve in original archives; do not pretend these are target capabilities. Use only available supported equivalents, or report a limitation.
+- Versions, pricing, access, release dates and API availability -> verify when needed rather than making historical prompt text permanent facts.
+- Old/efficient model prompts and Meta/Muse -> archived, excluded from this active source selection; do not delete the original history or backup.
+- Support code/assets, document schemas and complete skill bundles -> preserve intact as reference dependencies; never remove identical helper files without verifying their import/dependency paths.
 
-source-manifest.json фиксирует SHA-256 ZIP, текущие количества и границы выборки. source-coverage.csv содержит все 654 внешних и 26 вложенных файлов, hashes, binary/text/archive классификацию, duplicates, selection и pending status. source-sections.csv индексирует Markdown headings и отдельные XML section tags по строкам. Это иной критерий, чем прежние 3735 sections; не подменяй им прошлый отчёт. В этой выборке 62 сохранённых originals, не 103.
+## Concrete compatibility resolutions
+Claude Design's HTML-first requirement does not override an existing React/MUI project. Preserve the design method and adapt the output to the user's real stack.
+The source verify skill's prohibition on tests/typecheck is local to that source workflow. Here the user's relevant existing checks and live behavior observation are complementary and both retained when needed.
+Generic performance suggestions do not authorize custom hooks/memo/ref migrations in beginner code. Existing supported usage stays intact; new advanced usage follows explicit user scope.
+Automatic context guidance means rule availability and relevance-based helper selection, not execution of every installed skill or spawning agents by default.
+Model names inside source text or copied prompts do not install, enable or impersonate the named model. Verify actual menu availability separately. Fable/GPT sources may be usable as guidance even if that runtime model is unavailable in Antigravity.
 
-Все выбранные originals сохранены отдельно для локального аудита, вне распространяемого Git/package. Raw prompts, .git metadata, private backups и provider tool schemas не устанавливаются в context. Перед повторным inventory пользовательского ZIP проверь границы путей; ничего из него не исполняй. Muse не используется как активный источник, его history/ZIP сохраняются. Это никак не запрещает runtime модель с таким именем.
+## Prior configurations
+Preserve unrelated instructions, settings, hooks, models, accounts, extensions and MCP credentials. The current request may authorize a backed-up update of setup-owned files; it does not authorize cleanup of private archives or unrelated user files. Report unknown edits and unavailable integrations separately.
 
-requirements-map.csv связывает проверенные требования с repo file, installed path, activation и проверкой. detailed_clause_audit_pending в file/section maps означает, что полный аудит каждой фразы ещё не доказан. Не меняй статус из-за присутствия файла, keyword match, успешного копирования или одного ответа модели. Условия лицензии пользовательского ZIP и вложенных bundles не превращают все материалы в авторский MIT код: attribution и отсутствие гарантий исходной коллекции отмечены в docs/THIRD_PARTY.md.
-
-## Что адаптировано
-
-- Codex/ChatGPT: сохранение контекста задачи, действия в рамках разрешения, минимальные изменения, чтение файлов до правки, проверка результата и честный отчёт. Не импортируются hidden instructions, tool namespaces, platform identity, internal paths, approval implementations или service-specific permissions.
-- Claude: анализ намерения, ясная коммуникация, проверка источников и факт/неопределённость. Persona, фиксированные даты, provider-specific safety/identity и список доступных инструментов не становятся инструкциями Antigravity.
-- Claude Design/frontend-design/hi-fi-design: назначение и визуальное направление, existing UI context, реальные assets, варианты и проверка. Универсальные эстетические запреты заменены приоритетом реального brand/project.
-- create-design-system: source component inventory, реальные числовые tokens, assets, состояния и явные omissions. Host-specific @dsCard/@startingPoint, generated bundles и import UI не навязываются обычному React/Vite/MUI проекту.
-- wireframe/options: устойчивые IDs вариантов и сохранение прежних решений применимы при запросе вариантов; служебный canvas markup требует настоящего соответствующего host.
-- interactive-prototype: реальные interactions, state и navigation. Mock flow остаётся mock; API, auth и persistence требуют отдельной реализации и тестов.
-- Export, 3D, video, maps, provider API и research workflows — только когда запрошены и доступны соответствующие tools. Их raw instructions остаются справкой с незавершённым clause audit, а не установленной способностью.
-
-## Приоритет и доказательства
-
-Текущий запрос/системные ограничения и конкретный проект выше этой общей рекомендации. При переносе намерения используй настоящий schema доступного tool; не отключай approval/auth/sandbox/TLS и не изобретай credentials. Полная основа inline в ~/.gemini/GEMINI.md; helpers с model_decision в config/rules и guides читаются по теме. Совместимость mechanism не равна доказательству поведения каждого нынешнего/будущего runtime. Проверка настоящего нового чата без /skill, attachment или подсказки identifier должна выполняться в доступной Antigravity; запиши версию IDE, фактическую модель, запрос, ответ/trace и отдельно доступность модели. Если IDE недоступна, результат — unrun, а не pass.
+## Honest coverage
+Complete file/byte preservation and inventory do not prove full semantic coverage of every sentence. Section/line mapping is a review aid, not proof that every original clause is enforced. Keep substantive unsupported or uncertain source requirements marked for review. Global file presence, rule syntax checks and model-neutral design do not by themselves prove new-chat consumption or all-model runtime behavior.

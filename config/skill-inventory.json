@@ -1,6 +1,7 @@
 {
   "skills": [
     "agent-browser",
+    "android-cli",
     "gsd-add-tests",
     "gsd-ai-integration-phase",
     "gsd-audit-fix",
@@ -77,29 +78,5 @@
     "mansur-practice",
     "project-coding-rules",
     "vercel-react-best-practices"
-  ],
-  "gsdVersion": "1.15.0",
-  "sharedOtherToolSkills": [
-    "automate",
-    "autopilot",
-    "canvas",
-    "create-hook",
-    "create-rule",
-    "create-skill",
-    "create-subagent",
-    "loop",
-    "migrate-to-skills",
-    "onboard",
-    "rename-chat",
-    "review",
-    "review-bugbot",
-    "review-security",
-    "sdk",
-    "shell",
-    "split-to-prs",
-    "statusline",
-    "update-cli-config",
-    "update-cursor-settings"
-  ],
-  "note": "Other-tool skills are inventoried, not forced into Antigravity: they reference Codex APIs/hooks. Existing shared installation is preserved."
+  ]
 }

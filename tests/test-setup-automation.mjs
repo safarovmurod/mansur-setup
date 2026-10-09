@@ -147,8 +147,9 @@ test('Full installer reports real skill completion, preserves IDE approvals in s
   const settings = JSON.parse(fs.readFileSync(path.join(home, 'AppData/Roaming/Antigravity IDE/User/settings.json')));
   for (const key of ['editor.fontFamily', 'terminal.integrated.fontFamily']) assert.match(settings[key], /JetBrains Mono/);
   const skillMessages = messages.filter(line => /^  Skill \[/.test(line));
-  assert.equal(skillMessages.length, 77);
-  assert.match(skillMessages.at(-1), /\[77\/77\] 100%/);
+  const bundledSkills = require('../config/skill-inventory.json').skills.length;
+  assert.equal(skillMessages.length, bundledSkills);
+  assert.ok(skillMessages.at(-1).includes(`[${bundledSkills}/${bundledSkills}] 100%`));
   assert.ok(skillMessages.some(line => line.includes('mansur-frontend-mentor')));
   assert.ok(skillMessages.some(line => line.includes('mansur-practice')));
   const backups = path.join(home, '.gemini/backups');

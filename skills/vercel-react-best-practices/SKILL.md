@@ -1,4 +1,4 @@
-﻿---
+---
 name: vercel-react-best-practices
 description: >-
   AUTO-ACTIVATE for any React or Next.js task — no manual command needed.

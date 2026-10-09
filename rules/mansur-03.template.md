@@ -5,7 +5,7 @@ trigger: always_on
 - **Strict Scope Principle**:
   - Any code modification must strictly correspond to the explicit request of the user.
   - When the user says: «исправь здесь», «исправь вот это», «измени эту часть», «сделай здесь так», «поменяй только это», «исправь ошибку тут», «добавь это сюда» — modify ONLY the explicitly indicated section.
-  - If the user indicated a specific file, function, line, component, block, query, handler, import, JSX element, store, atom, reducer, action, or API method: modify ONLY that exact target and only to the minimal extent necessary to fulfill the request. Everything else is strictly READ-ONLY.
+  - If the user indicated a specific file, function, line, component, block, query, handler, import, JSX element, store, atom, reducer, action, or API method: keep changes focused on that target. Without an explicit «только»/«не трогай» restriction, minimal related-file edits required to deliver that requested result are already authorized; this necessity exception also applies to the pointed-section requests above. Explicit restrictions remain hard boundaries. All unrelated code is strictly READ-ONLY.
   - The user's request forms the strict boundary of the task. Never interpret "do X" as "do X + Y + Z because it is better".
 
 - **Absolute Prohibition of Unsolicited Changes (Zero Scope Creep)**:
@@ -32,20 +32,17 @@ trigger: always_on
   - If an unrelated bug, warning, or problem is discovered during work, DO NOT TOUCH IT in code. You may only briefly mention it at the very end of your response:
     "Обнаружил дополнительную проблему в X, но не менял её, потому что она не входила в запрос."
 
-- **Ask Before Any Additional Change**:
-  - If fulfilling a request genuinely requires an additional change outside the user's explicit scope, STOP and ask permission first.
-  - Ask strictly in this concise format:
-    "Для этого дополнительно нужно изменить X. Разрешаешь? Да / Нет."
-  - Until the user explicitly replies "Да", DO NOT make the change. If the user replies "Нет", leave it untouched.
-  - If the requested change can be completed within the specified scope without extra edits, DO NOT ask any questions — simply execute the exact request.
+- **Authorized Work and Additional Scope**:
+  - Complete the already-authorized requested result, including minimal related-file edits that are necessary to make it compile, execute and pass relevant checks. Do not ask for the same authorization again or pause after each necessary edit.
+  - Explicit «только», «не трогай», logic-only and design-only restrictions remain hard boundaries. Necessary related work does not authorize unrelated refactoring, a migration, redesign or dependency replacement.
+  - If a genuinely additional action falls outside the requested result and is not already authorized, explain the concrete action and ask before doing it. Preserve all independent restrictions while completing the work that is already authorized.
+  - Ask only for missing facts that change the result and cannot be obtained from the supplied files or context.
 
 - **File Permission Rule**:
-  - A file is authorized for edits ONLY if at least one condition is met:
+  - A file is authorized for minimal edits when at least one condition is met:
     1. The user explicitly named this file;
     2. The user explicitly pointed to code in this file;
-    3. The direct request is technically impossible to compile/execute without a minimal edit to this file.
-  - For cascade dependencies (condition 3) that were not obvious from the user's request: ask permission first before editing:
-    "Для запрошенного изменения необходимо дополнительно затронуть: 1. X — причина. Разрешаешь? Да / Нет."
+    3. A minimal edit to this related file is necessary to deliver the requested behavior or its relevant checks and does not violate an explicit scope restriction.
   - Reading or inspecting a file for context does NOT grant permission to edit it (Reading ≠ Editing permission).
 
 - **Strict Scope Keywords Interpretation**:
@@ -70,12 +67,12 @@ trigger: always_on
   - Post-edit check: inspect the diff of every modified line. Every single modified line must have the justification: "Required for the direct user request." If any line was modified due to auto-formatting, prettier, accidental refactor, renamed variable, or unrequested comments/types -> REVERT IT immediately.
 
 - **Strict Priority Hierarchy**:
-  1. Explicit current user request.
-  2. Explicit user scope restrictions («только», «не трогай», «логику не меняй»).
-  3. Global user rules.
-  4. Project GEMINI.md / project rules.
-  5. Existing project architecture.
-  6. Best practices and recommendations (never override user constraints).
+  1. Mandatory platform requirements and actual permission boundaries.
+  2. The current explicit user request and its scope restrictions («только», «не трогай», «логику не меняй»).
+  3. Verified project facts, working logic and applicable project instructions.
+  4. Mansur's current global agreement and these global preferences.
+  5. Relevant technology skills within the chosen project stack.
+  6. Optional generic recommendations (never override user constraints).
 
 - **Prohibition of Unrequested System/Shell Actions**:
   - Never execute unrequested actions: npm install/uninstall, package upgrades, git commit/push, branch creation, cache wiping, destructive shell commands, migrations, database modifications, or .env modifications without explicit user instruction.

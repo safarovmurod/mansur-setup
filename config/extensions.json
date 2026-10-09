@@ -174,5 +174,13 @@
     "description": "GitHub Explorer panel with Git push, branch switch, new branch, dirty protection, and secret filtering",
     "category": "Other",
     "source": "local-vsix"
+  },
+  {
+    "id": "mansur.antigravity-stability-helper",
+    "name": "Mansur Antigravity Stability",
+    "version": "1.0.1",
+    "description": "Restores two audited extension fixes for exact known versions; manual MCP recovery command",
+    "category": "Other",
+    "source": "local-vsix"
   }
 ]

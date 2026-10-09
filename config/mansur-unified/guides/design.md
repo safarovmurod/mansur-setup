@@ -1,31 +1,32 @@
-# Design guide — mansur-unified-v1
+# Design process and preserved domain coverage
 
-## Источники и сохранение дизайна
+This guide preserves the useful task domains of Claude Design and the selected coding/design references. Use a domain only when requested or relevant. Core quality applies globally; brand-specific styling and a particular artifact format do not.
 
-Сначала выясни назначение, аудиторию и обязательные референсы. Прочитай существующий UI и design system, используй доступные Figma/code/assets; screenshots полезны как референс, но не заменяют доступный исходный компонент. Если предоставленный источник недоступен, сообщи конкретно, что не прочитано; не выдумывай его tokens и component inventory. Не реконструируй фирменный логотип по памяти. Если нужного asset нет, обозначь это и используй согласованный placeholder, не выдавая его за оригинал.
+## Context and existing design system
+Understand purpose, audience, deliverable, intended behavior, viewport and constraints. Read screenshots/Figma, local assets, existing UI kits, components, tokens, typography and actual project files before design. Ask concrete questions only for missing facts that change the result. Reuse an existing brand system; do not replace it with a new aesthetic, arbitrary font, random image, framework or a source's HTML-first convention. For new original design without a reference, obtain or use the user's stated direction instead of inventing requirements.
 
-В existing UI сохраняй visual vocabulary: typography, цвета, density, spacing, radii, shadows, layout, copywriting, hover/focus, motion. Точные значения реального kit важнее привычного 4/8px grid или defaults MUI/shadcn. Не перестраивай working design при задаче про API/логику. Не копируй vendor-specific internal files и не внедряй .dc.html, <helmet>, @dsCard или custom tools, если проект не использует соответствующий host.
+## Layout and content
+Map every visible block, including header, navigation, hero, content, cards, forms and footer. Work in large coherent blocks, preserving routes, state, events and API behavior. Compare width/height, maxWidth, alignment, order, grid/flex behavior, gap, padding/margin, typography, font weights/line height, colors, borders, radii, images and crops. Use confirmed values; label screenshot estimates. Do not add animations, decorative effects, additional sections or marketing copy without a request. Keep missing assets explicit; preserve supplied asset names and local image imports.
 
-## Новое направление, layout и typography
+## Typography, color and accessibility
+Preserve actual fonts and licensed assets; wait for fonts before screenshot capture. Use readable size/line length/hierarchy, coherent spacing and accessible contrast. Use semantic controls, real labels, keyboard navigation, visible focus, sensible tab order and accessible names. Check dialogs, error messages, non-color cues and required loading/empty/error/success states. When existing behavior is out of scope, report the issue instead of silently refactoring. Prefer native project components, including MUI/sx and px/hex conventions for new Mansur examples.
 
-Для нового дизайна выбирай ясное направление по задаче, а не одинаковый template для всего. Выбор необычной typography или композиции должен улучшать смысл и читабельность. При наличии brand используй его; универсальный запрет Arial/Inter или обязательные gradients из стороннего prompt не имеет приоритета над проектом. Если пользователь просит варианты, дай различимые направления с устойчивыми именами/ID, сохрани предыдущие варианты; не вынуждай выбор для маленькой правки.
+## Responsive and interaction
+Use the supplied desktop/mobile reference and real viewport. If mobile requirements are missing, ask; do not pretend an invented mobile layout is the supplied design. Preserve touch usability, content order, text wrapping and image fit. Check overflow and horizontal scrolling. Exercise buttons, navigation, controlled forms, drawer/modal, pagination/slider/accordion and feedback states only as applicable. Do not invent behavior from static screenshots. If state or APIs are uncertain, confirm the contract first.
 
-Установи иерархию: primary action, заголовки, body, navigation, content groups. Проверяй ширины, alignment, baseline, line height, длину строки, отступы, vertical rhythm и плотность. Используй согласованные tokens и переиспользуй существующие компоненты. Не добавляй пустые секции, фиктивные KPI и декоративные cards ради заполнения экрана. Содержимое, иконки и фотографии должны отвечать задаче и иметь понятное происхождение/условия использования.
+## Visual verification and handoff
+Render through the real application's dev server using an available authorized browser. Wait for styles, images and fonts. Capture actual screenshots at matching viewport/capture area. Compare reference and actual content; a numeric diff alone is insufficient because font rasterization, scaling and dynamic content vary. Do not blur references or raise thresholds to conceal differences. Specify confirmed differences as file -> component -> property -> current -> target -> change. Recheck changed blocks and relevant mobile/interaction paths. Keep source reference intact, communicate evidence and missing checks, and hand off exact implementation files without unresolved placeholders being described as complete.
 
-## Компоненты, состояния и взаимодействие
+## Domain-specific deliverables when requested
+- Wireframes/options: explore alternative compositions only for a requested exploratory design; preserve stable option IDs and explain concrete tradeoffs. They are drafts, not final screenshot-fidelity claims.
+- High-fidelity and design systems: use real context, reusable components, tokens, examples and source assets. Show a concrete draft when iterative review benefits the request; do not require approval for every reversible implementation step.
+- Interactive prototypes and adjustable designs: make controls and interactions real and scoped to the requested artifact; separate prototype data from a production API. Keep tweak controls or debug metadata out of end-user product flows unless requested.
+- Document/deck/flier: use readable typography, hierarchy, safe print margins, slide/page dimensions and editability suited to the requested medium. Preserve source content and asset rights. Export only requested formats and verify rendering, page count and editable/native versus screenshot-based output honestly.
+- PDF/standalone HTML: use the available export mechanism and inspect the resulting artifact. Verify whether assets are embedded and whether offline use works; do not claim standalone behavior from a source file alone.
+- HTML email: use email-client constraints only for an email deliverable; do not impose them on a React app. Verify the requested client/format and preserve real links/assets.
+- 3D object/animated video: use supported tools and requested motion/scene constraints. Keep static frontend work free of automatic animation/3D dependencies. Verify actual render/output when accessible.
+- Maps/geography and web research: use verified geographic data, current primary sources and suitable available tools. Cite factual claims and preserve coordinate/projection/source constraints when applicable. Do not invent locations or research attribution.
+- Claude API in prototypes and handoff to a coding agent: real available API, authentication and server boundary are prerequisites. Provider-only tools, source SDKs, canvas editors, artifact APIs, source paths and handoff commands remain reference material unless actually supported and authorized in the target environment.
 
-Если source задаёт список component families, перечисли его и отслеживай каждую нужную задаче семью; не объявляй произвольный subset полной системой. Документируй сознательное дополнение и отсутствующую семью. Сохраняй public API компонентов и допустимые variants. Проверь normal/hover/focus/disabled, loading/empty/error/success, формы, validation feedback, dialogs и navigation. В interactive prototype реализуй нужные transitions и state; явно отличай fake data, stub calls и mock auth от production backend.
-
-Motion используй с целью, учитывай prefers-reduced-motion. Не делай постоянные отвлекающие эффекты или тяжёлые анимации для простого интерфейса. Для maps, video, 3D, email, decks или документов используй только реально доступный renderer/export pipeline; специальный инструмент из Claude Design не появляется от имени источника. Проверяй export отдельно: рабочий web preview не доказывает корректный PDF/PPTX/email.
-
-## Responsive и accessibility
-
-Проверь desktop и mobile и существенные intermediate размеры. Не обрезай содержимое фиксированной высотой, не скрывай главный action и не допускай горизонтальный overflow без причины. Учитывай длинные строки, кириллицу, реальные изображения и touch targets.
-
-Используй semantic HTML и доступные компоненты выбранной библиотеки: headings, labels, keyboard navigation, visible focus, dialog focus/escape, alt text по смыслу. Проверь contrast, ошибки вне цвета, zoom и reduced motion. Не объявляй accessibility соответствующей стандарту только из-за наличия aria attributes; сообщай, какие проверки выполнены.
-
-## Реальная визуальная проверка
-
-Запусти нужный dev/build workflow, открой результат доступным browser tool/CLI. Сделай actual screenshots и сравни с референсом при согласованном viewport, масштабе, fonts и состоянии. Исправь существенные расхождения и пересними. Проверь interactions, console/runtime errors, broken assets и mobile layout. Screenshot diff полезен, но его число не заменяет смысловую оценку.
-
-Не вызывай dc_write, ready_for_verification, get_design_context или иной tool только потому, что он указан в raw prompt; сначала проверь, есть ли он в этой среде. Разрешённый fallback — существующие файлы, обычный dev server и доступный браузер. Не выдавай статическое чтение guide за тест работающего UI или будущей модели. В отчёте отделяй реализованное, проверенное и недоступное.
+## Source boundaries
+Raw tools, schemas, platform identity, hidden conversation tags and environment paths are not transferable global commands. Preserve their original text in the archive and map the useful goal to a real supported capability; explicitly record unsupported portions. Read contextual helpers on demand, never preload every design skill on every chat turn.

@@ -1,7 +1,8 @@
 ---
 trigger: model_decision
-description: UI, design systems, screenshots, layouts, typography, responsive behavior and visual verification.
+description: "Mansur design details for screenshot/Figma fidelity, responsive UI, design systems, typography, accessibility, prototypes, document/deck/3D/email design and visual verification."
 ---
-# Mansur unified design
 
-Для визуальной задачи прочитай ~/.gemini/config/mansur-unified/guides/design.md. Используй реальные assets и visual vocabulary проекта; различай дизайн, интерактивный prototype и production implementation. Проверяй responsive, accessibility, состояния интерфейса и реальные скриншоты. Не навязывай новую тему существующему проекту. Не вызывай инструменты Claude Design, которых нет в этой среде. Основной договор mansur-unified-v1 доступен без ручного /skill.
+# Design contextual reference
+
+Read `~/.gemini/config/mansur-unified/guides/design.md` when the design task needs deeper guidance. Use the user's real reference, assets and stack. The global core already supplies baseline design quality and verification without manual activation.

@@ -1,33 +1,27 @@
-# Full-stack guide — mansur-unified-v1
+# Full-stack implementation and verification
 
-## Контекст и контракт
+Apply only the sections relevant to the request. The user's simple-code and stack agreement stays in force. The purpose is one consistent workflow spanning a real frontend and real backend, not automatically expanding every frontend question into a full-stack project.
 
-Начни с package.json, существующих components/routes/client calls, backend handlers, migrations, конфигурации и имеющихся тестов. Определи реальные runtime и сервисы, команды запуска, environment requirements и источник API контракта: код сервера, OpenAPI или предоставленная документация. Отдельно запиши неизвестные method/path, request/response shape, status codes, pagination, auth и error format. Не заполняй неизвестные значения выдуманным работающим API. Fixtures допустимы для тестов и явно обозначенного prototype; они не являются production интеграцией.
+## Inspect and define the contract
+Inspect package manifests, lockfiles, startup scripts, environment-variable names without secret values, frontend pages/router/store, backend routes/controllers/middleware, schema/migrations and relevant tests. Read real Swagger/OpenAPI or authoritative docs when contracts or versions are uncertain. List each user requirement, its implementation location and its verification status. Ask for missing endpoint/method/body/response, authentication or post-action behavior that materially changes the result. Do not silently fill gaps with invented data.
 
-Для нового учебного frontend по умолчанию React + JSX + Vite + MUI + React Router + Axios, .jsx для JSX и .js без JSX. Подключай только то, что необходимо сценарию. Сохраняй существующий TypeScript (.tsx/.ts), Next.js, Tailwind и выбранный state manager. Формы, requests и transitions должны оставаться понятными; не прячь учебную логику за factories, repositories и custom hooks без причины. Не мигрируй working code ради примера.
+## Client and server behavior
+Trace event -> validation -> request -> authentication/authorization -> business logic -> database -> response -> state -> UI. Keep API field names and ID types real. Treat JSON, FormData, multipart uploads and PATCH/PUT distinctions as contract-specific. Keep failures visible at the appropriate UI boundary; do not invent unconditional fallback values, optimistic changes or retries. Prevent duplicate submissions when needed by the requested workflow. Keep detail routes and permissions functional after direct navigation and F5. Preserve Header/Outlet/Footer, NavLink behavior and 404/error handling of the actual router version.
 
-## Frontend и интеграция
+## Data and transactions
+Read the schema and query paths first. Enforce authorization on server reads and writes, use parameterized queries and validate external data at the trust boundary. Use a transaction when the required operation must succeed atomically. Inspect constraints, indexes and query evidence before optimization. Do not introduce a database, an ORM, a service layer, a global store or a migration just to match a source prompt. Plan authorized schema changes with a real backup, rollback and compatible application behavior. Avoid destructive live migrations and production data in tests. Never weaken constraints or types simply to hide an error.
 
-Соедини экран и endpoint по проверенному контракту. Проверь формы, pending submit, disabled состояние, loading/empty/error/success, navigation и отмену устаревшего запроса, если это реально нужно. Не сохраняй один источник данных независимо в нескольких state managers. Правильно передавай route parameters, идентификаторы и тела запросов. Обработай timeout, network failure, validation errors и истёкшую сессию без ложного success. Подтверждай успешное сохранение ответом сервера; optimistic UI требует rollback и задачи, которая это оправдывает.
+## Authentication and secrets
+Follow the existing supported authentication mechanism and deployment environment. Check server-side authorization, session/cookie/token lifecycle, role checks and access boundaries when affected. Do not hardcode API keys, passwords or tokens, expose them in the browser, print them in logs, copy account state into source references or commit private backups. Inspect actual platform defaults for CORS, CSRF, cookies and upload limits rather than imposing one universal solution. Do not disable sandbox, approval, authentication or privacy protections to make the agent automatic.
 
-## Сервер, validation и authorization
+## Uploads, async work and integration
+Verify field names, accepted types, size limits, filenames, storage permissions and returned URLs. Keep request cancellation, race handling, background jobs, idempotency, rate limits and retries scoped to demonstrated requirements; do not add advanced hooks or infrastructure speculatively. Verify integration failure paths with harmless synthetic cases. External writes, messages, deployments, purchases and destructive operations require their relevant user authorization. A mock response proves only the isolated flow, not a real provider connection.
 
-Validation — на границе API, не только в браузере. Проверяй types, required fields, ограничения длины/размера, допустимые значения и неизвестные поля согласно контракту. Authentication устанавливает identity; authorization отдельно проверяет разрешение на действие и конкретный объект/tenant на сервере при каждом нужном запросе. Скрытая кнопка не является access control. Выбирай существующий механизм sessions/tokens; не изобретай cookies/OAuth flow. Для cookie auth оцени CSRF, HttpOnly/Secure/SameSite; для cross-origin настрой CORS на необходимые origins. Не ослабляй auth ради smoke test production.
+## Testing and delivery
+Use available scripts in the actual package manifest for relevant lint, typecheck, build and tests. Keep tests purposeful: authorized API behavior, error boundaries, access checks, database integrity, F5/detail routes and important user flows. For UI changes run an actual dev server, observe the affected page, forms, console, network and responsive viewports where tools are available. Report build, runtime, API, persistence and visual verification separately. Full-stack persistence requires writing and reading back the test record, preferably across reload/restart when that behavior is requested. Never call a frontend-only mock a verified backend.
 
-Ошибки должны иметь понятный публичный формат и правильный HTTP status, но не stack traces, connection strings или secrets. Логи полезны для диагностики, без токенов и лишних личных данных. Rate limiting и abuse protection добавляй там, где этого требует реальный публичный сценарий, а не как новую несвязанную платформу.
+## Performance and operational behavior
+Measure a real issue before adding memoization, indexes, caches, batching, concurrency, virtualization or background agents. Preserve simple code for beginner tasks. Avoid infinite retry/tool loops and all-skill initialization. Keep normal work free of watchers and repeated polling. Stop processes started for checks when no longer needed. Respect current hosting, environment and release procedures; prepare a reviewable change before a required deployment approval. A passing check does not guarantee zero defects or vulnerabilities.
 
-## База, uploads и persistence
-
-Используй установленную базу и migration workflow. Parameterized queries/ORM параметры вместо SQL конкатенации. Необходимые foreign keys, uniqueness и ограничения целостности должны защищать данные, а не только UI. Несколько связанных операций, которые должны завершаться вместе, выполняй в transaction; проверяй rollback при ошибке. Для повторных запросов оцени idempotency и race conditions, особенно деньги, inventory и создание уникальных записей. Не добавляй кеш и сложную синхронизацию без измеренной проблемы.
-
-Upload требует проверки прав, размера, типа/содержимого, безопасного generated filename и места хранения. Не доверяй client filename/MIME; блокируй traversal и исполняемый контент согласно сценарию. Не показывай private uploads без server authorization. Документируй limits и lifecycle удаления. Нельзя выдавать object URL или временный файл в памяти за сохранение в постоянное хранилище.
-
-Проверь запись и последующее чтение из настоящего тестового storage; когда применимо, перезапусти только запущенный тобой тестовый сервис и снова прочитай данные. Состояние React или успешный POST само по себе не доказывает persistence. Production database и реальные пользовательские данные не используй как разрушительный fixture.
-
-## Secrets, производительность и проверки
-
-Сначала проверь имена/наличие уже настроенных bindings, затем необходимую операцию. Никогда не печатай значения credentials. Новый секрет запрашивай только через поддерживаемые secure settings. Server secrets не попадают в Vite/Next public variables, клиентский bundle, Git, screenshots или отчёт. TLS/checksum/signature остаются включёнными.
-
-Перед оптимизацией измерь реальный узкий участок. Проверь лишние requests, N+1 queries, pagination, индексы подходящих запросов, размер assets и bundle. Не применяй useMemo/useCallback ко всему без причины. Совместимость и простой работающий код важнее декоративного refactor.
-
-Проверь основной успешный поток и существенные ошибки: невалидные данные, anonymous/forbidden user, отсутствующий объект, duplicate/race при необходимости, сеть и повторное чтение. Запусти существующие tests/build/type checks. Browser, API и persistence результаты считай отдельно. В отчёте укажи команды, фактическое поведение и skipped/unrun части. Этот guide не устанавливает сервер, базу, модель или API и не доказывает, что агент его прочитал.
+## Debug and report
+Reproduce -> evidence -> confirmed cause -> minimal fix -> relevant recheck. Mark uncertain causes. Inspect the diff and verify each edit belongs to the authorized request. End with outcome, exact files, evidence, untested parts and next necessary action; do not transfer assistant errors to Мансур.

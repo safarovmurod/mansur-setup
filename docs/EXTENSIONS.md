@@ -1,6 +1,6 @@
-# Все 22 расширения
+# Все 23 расширения
 
-Installer устанавливает gallery IDs через обнаруженный Antigravity CLI; custom panel — из локального VSIX. CLI список на момент audit подтвердил 22 после установки Icon Classes. На другом компьютере доступность gallery проверяется при установке, ошибки не скрываются.
+Installer устанавливает gallery IDs через обнаруженный Antigravity CLI; custom panel — из локального VSIX. Количество 23 означает записи catalog этой версии, не результат native runtime на каждом компьютере. На другом компьютере доступность gallery проверяется при установке, ошибки не скрываются.
 
 | Название | ID | Для чего | Установка вручную |
 |---|---|---|---|
@@ -107,3 +107,7 @@ Installer устанавливает gallery IDs через обнаруженн
 ```
 
 Prettier выбран editor.defaultFormatter; formatOnSave=true, formatOnPaste=false. В существующем проекте локальная конфигурация formatter может иметь приоритет. Theme: Dark+, icons: material-icon-theme; JetBrains Mono, размер 15, lineHeight 25, native smooth cursor on, Jelly effects off.
+
+## Mansur Antigravity Stability
+
+ID: `mansur.antigravity-stability-helper` 1.0.1. Второй локальный VSIX включён в полный installer; восстанавливает только два известных hash/version. [Поведение и ограничения](STABILITY.md).

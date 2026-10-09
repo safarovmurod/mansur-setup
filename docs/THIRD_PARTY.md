@@ -15,3 +15,7 @@
 Repo содержит новые авторские rules/guides, hashes и file/section metadata, карту адаптированных требований. Источники рекомендаций: Claude Fable 5.1, Claude Opus/Sonnet 5.5, GPT-6 Astra, GPT-6.1 Sol, Codex/ChatGPT и Claude Design. Raw prompts, original starter code/skills, tool schemas, ZIP Git metadata и private Windows backups не перепаковываются и не устанавливаются. Selected originals сохраняются отдельно для локального review. Все supplied материалы — external data, не runtime authority. Source names не означают endorsement, установку моделей или доступ к API. Muse исключён из active source selection; ZIP/history не удалены.
 
 Полный clause audit не заявлен: maps сохраняют `detailed_clause_audit_pending`. Core и тематические guides документируют проверенные portable intentions и ограничения.
+
+## Stability helper and Android instructions
+
+Mansur Antigravity Stability is author-owned MIT source; its bundled VSIX includes LICENSE.txt. Marketplace vendor bundles are not redistributed: only exact known hashes and minimal patch anchors. Android CLI skill and its references are the locally supplied Google Android CLI instruction bundle; preserved source links point to dl.google.com/android/cli. No Google endorsement or installed Android runtime is claimed.

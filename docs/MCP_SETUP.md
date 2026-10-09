@@ -2,7 +2,7 @@
 
 Для установки из открытого Antigravity terminal рекомендован `install --skip-permissions`: templates/rules устанавливаются, текущие approvals сохраняются. Автоматизация ниже не заменяет личную MCP авторизацию. [Полная установка](../README.md#quick-start).
 
-Installer не переносит credentials, не объединяет два существующих MCP configs и не меняет активную авторизацию. Новому пользователю создаёт disabled hosted GitHub template в ~/.gemini/config/mcp_config.json и GSD/sequential-thinking template в ~/.gemini/antigravity/mcp_config.json. Фактический активный источник проверь в IDE: Agent panel → меню MCP servers / Manage MCP Servers → View raw config. Название меню может отличаться между версиями; редактируй именно открытый IDE файл. Сделай local backup.
+Installer сохраняет существующие server definitions, env, headers и credentials. Неприсутствующие GitHub/GSD/Sequential templates добавляются в активный ~/.gemini/config/mcp_config.json; GitHub template disabled и без credentials. Неподдерживаемое server metadata $typeName удаляется с backup. Существующий legacy config ~/.gemini/antigravity/mcp_config.json сохраняется. Фактический активный источник проверь в IDE: Agent panel → меню MCP servers / Manage MCP Servers → View raw config. Название меню может отличаться между версиями; редактируй именно открытый IDE файл. Сделай local backup.
 
 ## GitHub — hosted, без Docker
 
@@ -31,3 +31,5 @@ PAL не был обнаружен в этих двух configs, поэтому 
 3. Reload/refresh → проверь tools. Для Clink следуй [Clink docs](https://github.com/BeehiveInnovations/pal-mcp-server/blob/main/docs/tools/clink.md): сначала установи выбранный внешний CLI и авторизуйся самостоятельно. Проверяй CLI version и простой read-only запрос до объявления «работает». Токены не клади в repo. PAL installation/auth не выполняются standard installer автоматически.
 
 Ошибки doctor config/launcher показываются без credentials. Doctor не обещает, что конкретный сервер принял токен, модель доступна или AI использовал его инструмент.
+
+Native MCP Refresh/reload IDE 2.5.5 имеет наблюдаемую lifecycle проблему; helper не исправляет vendor runtime. [Доказательства и ограничения](STABILITY.md).

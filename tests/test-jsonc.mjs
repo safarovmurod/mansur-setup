@@ -29,6 +29,16 @@ test('parseJsonc handles trailing commas', () => {
   assert.deepEqual(parsed.b, [1, 2]);
 });
 
+test('JSONC preserves comma/closing-bracket text, escaped quotes and BOM', () => {
+  const text = '\uFEFF{"custom":"a,}","other":"b,]","escaped":"\\\"c,}","array":[1,],}';
+  assert.deepEqual(parseJsonc(text), { custom: 'a,}', other: 'b,]', escaped: '"c,}', array: [1] });
+  assert.throws(() => parseJsonc('{"value":1/* comment */2}'), /parse error/);
+});
+
+test('Deep merge replaces a null user object without losing unrelated fields', () => {
+  assert.deepEqual(deepMerge({ custom: 1, colors: null }, { colors: { foreground: '#ffffff' } }), { custom: 1, colors: { foreground: '#ffffff' } });
+});
+
 test('deepMerge preserves non-conflicting existing settings', () => {
   const userExisting = {
     'custom.plugin.enabled': true,

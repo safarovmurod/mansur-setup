@@ -39,6 +39,12 @@ jobs:
         run: |
           & .\scripts\bootstrap.ps1 -DryRun
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Windows PowerShell 5.1 bootstrap success and failures
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\test-bootstrap.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Windows PowerShell 5.1 font registration and repeat
         if: runner.os == 'Windows'
         shell: powershell

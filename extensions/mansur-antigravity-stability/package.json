@@ -1,0 +1,19 @@
+{
+  "name": "antigravity-stability-helper",
+  "displayName": "Mansur Antigravity Stability",
+  "description": "Restores two audited extension fixes after known reinstalls and provides explicit Antigravity MCP recovery commands.",
+  "publisher": "mansur",
+  "version": "1.0.1",
+  "engines": { "vscode": "^1.107.0" },
+  "categories": ["Other"],
+  "main": "./extension.js",
+  "extensionKind": ["ui"],
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "mansurStability.status", "title": "Mansur: Check Antigravity Stability" },
+      { "command": "mansurStability.repair", "title": "Mansur: Restore Known Extension Fixes" },
+      { "command": "mansurStability.reconnectMcp", "title": "Mansur: Reconnect MCP (Reload Window)" }
+    ]
+  }
+}
