@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { assertStored, ownedPolicies, assertHarness, workerReachedWaiting, until } = require('./controller.cjs');
+const { assertStored, ownedPolicies, assertHarness, workerReachedWaiting, redactLog, until } = require('./controller.cjs');
 const { mergePolicies, mergeTabPolicies, TAB_TOPIC_KEY } = require('../../lib/agent-automation');
 const { TOPIC_KEY, stringField } = require('../../lib/mcp-permissions');
 
@@ -38,4 +38,9 @@ test('Before-close verification permits unrelated IDE startup preferences to cha
     [key, Buffer.concat([Buffer.from(value, 'base64'), foreign]).toString('base64')]));
   assert.deepEqual(ownedPolicies(withStartupUpdate), ownedPolicies(native));
   assert.notDeepEqual(ownedPolicies({ ...native, [TAB_TOPIC_KEY]: '' }), ownedPolicies(native));
+});
+test('Public failure summaries redact token-shaped IDE log values', () => {
+  const safe = redactLog('Bearer abc.def https://example.test/?code=PRIVATE&access_token=SECRET accessToken="HIDDEN" startup failed');
+  for (const secret of ['abc.def', 'PRIVATE', 'SECRET', 'HIDDEN']) assert.equal(safe.includes(secret), false);
+  assert.ok(safe.includes('startup failed'));
 });

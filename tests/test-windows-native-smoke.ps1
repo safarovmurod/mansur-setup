@@ -52,8 +52,22 @@ if ($LASTEXITCODE -ne 0) { throw 'Actual Windows/native IDE smoke failed; inspec
 Get-Content -LiteralPath (Join-Path $ArtifactDirectory 'result.json') -Raw
 } catch {
     $failure = @{ passed = $false; stage = $stage; startedAt = $started; completedAt = [DateTime]::UtcNow.ToString('o'); error = $_.Exception.Message }
-    $failure | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $ArtifactDirectory 'orchestration-failure.json') -Encoding UTF8
+    foreach ($name in @('runtime-failure.json', 'failure.json')) {
+        $detailFile = Join-Path $ArtifactDirectory $name
+        if (Test-Path -LiteralPath $detailFile) {
+            $failure.runtime = Get-Content -LiteralPath $detailFile -Raw | ConvertFrom-Json
+            break
+        }
+    }
+    $failure | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $ArtifactDirectory 'orchestration-failure.json') -Encoding UTF8
     $result = Join-Path $ArtifactDirectory 'result.json'
-    if (-not (Test-Path -LiteralPath $result)) { $failure | ConvertTo-Json | Set-Content -LiteralPath $result -Encoding UTF8 }
+    if (-not (Test-Path -LiteralPath $result)) { $failure | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $result -Encoding UTF8 }
+    $specific = if ($failure.runtime.error) { ($failure.runtime.error -split "`r?`n")[0] } else { $failure.error }
+    $safeAnnotation = ($stage + ': ' + $specific).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+    Write-Host ('::error title=Native Windows smoke failed::' + $safeAnnotation)
+    if ($env:GITHUB_STEP_SUMMARY) {
+        @('## Native Windows smoke failure', '', 'The following diagnostics come only from this disposable test profile. Token-shaped values in IDE log tails are redacted.', '', '```json', ($failure | ConvertTo-Json -Depth 8), '```') |
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Encoding UTF8
+    }
     throw
 }

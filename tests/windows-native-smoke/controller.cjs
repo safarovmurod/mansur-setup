@@ -52,6 +52,29 @@ function workerReachedWaiting(status) {
   }
   return status.state === 'waiting';
 }
+function redactLog(text) {
+  return text.replace(/(Bearer\s+)[A-Za-z0-9._~+\/-]+/gi, '$1[REDACTED]')
+    .replace(/([?&](?:code|access_token|id_token|refresh_token|token|key|state|nonce|session|signature)=)[^&\s"'<>]+/gi, '$1[REDACTED]')
+    .replace(/((?:access[_-]?token|refresh[_-]?token|id[_-]?token|client[_-]?secret|password|authorization)["']?\s*[:=]\s*["']?)[^\s,"'}]+/gi, '$1[REDACTED]');
+}
+function collectLogTails(directory, label, depth = 0) {
+  const files = [];
+  if (depth > 4 || !fs.existsSync(directory)) return files;
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const file = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...collectLogTails(file, path.join(label, entry.name), depth + 1));
+    else if (entry.isFile() && entry.name.endsWith('.log')) files.push({ file, label: path.join(label, entry.name), modified: fs.statSync(file).mtimeMs });
+  }
+  return files;
+}
+function runtimeDiagnostics(env, artifactDirectory, children, stage, error) {
+  const candidates = [...collectLogTails(path.join(path.dirname(env.userSettingsDir), 'logs'), 'IDE-profile/logs'),
+    ...collectLogTails(artifactDirectory, 'smoke-artifacts')].sort((a, b) => b.modified - a.modified).slice(0, 8);
+  return { passed: false, stage, error: redactLog(error.stack || String(error)),
+    nodeVersion: process.versions.node, product: json(path.join(env.ideRoot, 'resources/app/product.json')).ideVersion,
+    launches: children.map(child => ({ phase: child.smokePhase, pid: child.pid, exitCode: child.exitCode, signalCode: child.signalCode })),
+    logs: candidates.map(item => ({ source: item.label, tail: redactLog(fs.readFileSync(item.file, 'utf8').slice(-4000)) })) };
+}
 
 async function main(ideRoot, executable, directory, artifactDirectory) {
   if (process.platform !== 'win32' || process.env.GITHUB_ACTIONS !== 'true' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted') {
@@ -78,6 +101,7 @@ async function main(ideRoot, executable, directory, artifactDirectory) {
   assert.ok(fs.existsSync(profile), 'Production installer produces the editor API plan');
   const db = path.join(env.userSettingsDir, 'globalStorage/state.vscdb');
   const children = [], results = {};
+  let stage = 'open initial actual IDE';
   function open(phase) {
     const output = fs.openSync(path.join(artifactDirectory, phase + '-ide.log'), 'a');
     const child = spawn(executable, ['--disable-gpu', '--disable-workspace-trust', '--skip-welcome', '--skip-release-notes',
@@ -87,11 +111,19 @@ async function main(ideRoot, executable, directory, artifactDirectory) {
       env: { ...process.env, MANSUR_NATIVE_SMOKE_REPO: repo, MANSUR_NATIVE_SMOKE_PLAN: profile,
         MANSUR_NATIVE_SMOKE_PHASE: phase, MANSUR_NATIVE_SMOKE_SIGNALS: signals },
     });
-    fs.closeSync(output); children.push(child);
+    fs.closeSync(output); child.smokePhase = phase; children.push(child);
     child.on('error', error => write(path.join(signals, phase + '-launch-error.json'), { error: error.message }));
   }
   async function ready(phase) {
-    await until(() => fs.existsSync(path.join(signals, phase + '-ready.json')), 'actual ' + phase + ' IDE extension host');
+    await until(() => {
+      for (const suffix of ['launch-error', 'fatal']) {
+        const file = path.join(signals, phase + '-' + suffix + '.json');
+        if (fs.existsSync(file)) throw new Error('Actual ' + phase + ' IDE ' + suffix + ': ' + JSON.stringify(json(file)));
+      }
+      const child = children.find(child => child.smokePhase === phase);
+      if (child?.exitCode !== null && !isIdeRunning()) throw new Error('Actual ' + phase + ' IDE exited before the test extension became ready: ' + child?.exitCode);
+      return fs.existsSync(path.join(signals, phase + '-ready.json'));
+    }, 'actual ' + phase + ' IDE extension host');
     results[phase] = json(path.join(signals, phase + '-ready.json'));
     assertHarness(results[phase], phase);
     assert.equal(isIdeRunning(), true, 'tasklist detects the actual Antigravity process');
@@ -103,6 +135,7 @@ async function main(ideRoot, executable, directory, artifactDirectory) {
   }
   try {
     open('initial'); await ready('initial');
+    stage = 'read-only preflight and queue while actual IDE runs';
     await until(() => fs.existsSync(db), 'actual IDE initializes state.vscdb');
     assert.equal(preflightNativeSetup(env, { autoApprove: true }).supported, true,
       'Production read-only preflight accepts the database initialized by the real IDE');
@@ -122,6 +155,7 @@ async function main(ideRoot, executable, directory, artifactDirectory) {
     assert.equal(getSetupStatus(env).state, 'waiting', 'Production status identifies the real active worker');
     assert.deepEqual(ownedPolicies(topics(db)), before,
       'queued worker leaves managed native values unchanged while actual IDE is open; unrelated IDE startup state may change');
+    stage = 'normal initial IDE shutdown and worker apply';
     await close('initial');
     await until(() => {
       const status = workerStatus();
@@ -132,6 +166,7 @@ async function main(ideRoot, executable, directory, artifactDirectory) {
     assert.equal(getSetupStatus(env).state, 'applied', 'Production status verifies stored preferences after real worker completion');
     // Create a real project override only in this smoke's disposable workspace.
     write(path.join(workspace, '.vscode/settings.json'), { '[python]': { 'editor.inlineSuggest.enabled': true } });
+    stage = 'reopen actual IDE and verify effective settings';
     open('verify'); await ready('verify'); await close('verify');
     const persisted = assertStored(topics(db));
     const result = { passed: true, setupVersion: require(path.join(repo, 'package.json')).version,
@@ -149,6 +184,10 @@ async function main(ideRoot, executable, directory, artifactDirectory) {
         'Gallery extensions, system font, browser and MCP network provisioning are covered by other checks.'] };
     write(path.join(artifactDirectory, 'result.json'), result);
     console.log('PASS: actual Windows Antigravity install → open → queue → normal close → apply → reopen.');
+  } catch (error) {
+    try { write(path.join(artifactDirectory, 'runtime-failure.json'), runtimeDiagnostics(env, artifactDirectory, children, stage, error)); }
+    catch (diagnosticError) { write(path.join(artifactDirectory, 'runtime-failure.json'), { passed: false, stage, error: redactLog(error.stack || String(error)), diagnosticError: diagnosticError.message }); }
+    throw error;
   } finally {
     for (const phase of ['initial', 'verify']) fs.writeFileSync(path.join(signals, phase + '-quit'), 'quit requested by cleanup');
     if (isIdeRunning()) {
@@ -168,4 +207,4 @@ if (require.main === module) main(...process.argv.slice(2)).catch(error => {
   if (artifacts) write(path.join(artifacts, 'failure.json'), { passed: false, error: error.stack });
   console.error(error.stack); process.exitCode = 1;
 });
-module.exports = { assertStored, ownedPolicies, assertHarness, workerReachedWaiting, until };
+module.exports = { assertStored, ownedPolicies, assertHarness, workerReachedWaiting, redactLog, until };
