@@ -46,13 +46,15 @@ function powershell.exe {
     $fileIndex = [Array]::IndexOf($args, '-File')
     Assert-True ($fileIndex -ge 0 -and (Test-Path -LiteralPath $args[$fileIndex + 1])) 'Launcher did not pass an existing script'
     $minimumIndex = [Array]::IndexOf($args, '-MinimumVersion')
-    Assert-True ($minimumIndex -ge 0 -and $args[$minimumIndex + 1] -eq '2.1.12') 'README must reject setup versions older than 2.1.12'
+    Assert-True ($minimumIndex -ge 0 -and $args[$minimumIndex + 1] -eq '2.1.13') 'README must reject setup versions older than 2.1.13'
+    Assert-True (($args -contains '-QuietCompletion') -eq $networkTest.expectedQuiet) 'README completion scope missing or applied to full setup'
     $networkTest.launchedFile = $args[$fileIndex + 1]
     $global:LASTEXITCODE = $networkTest.launchStatus
 }
 function Test-Case($Label, $Action) {
     $networkTest.requests = 0; $networkTest.useCurl = $false; $networkTest.expectedTimeout = 600
     $networkTest.requestMode = 'success'; $networkTest.launches = 0; $networkTest.launchStatus = 0
+    $networkTest.expectedQuiet = $false
     & $Action
     $networkTest.passed++
     Write-Host "PASS: $Label"
@@ -104,23 +106,33 @@ $global:LASTEXITCODE = 0
 '@
     $download = Join-Path $testRoot 'download with spaces.zip'
     $networkTest.passed = 0
+    Test-Case 'completion-only arguments preserve approval scope; full setup still enables automation' {
+        $entry = 'source with spaces/bin/mansur-setup.js'
+        $quietArgs = @(Get-SetupArguments -Entry $entry -QuietCompletion -Name 'Шеф')
+        Assert-True ($quietArgs.Count -eq 2 -and $quietArgs[0] -eq $entry -and $quietArgs[1] -eq 'quiet-completion') 'Quiet bootstrap must not install/reset the full profile or chat approvals'
+        $fullArgs = @(Get-SetupArguments -Entry $entry -Name 'Шеф')
+        Assert-True ($fullArgs[1] -eq 'install' -and $fullArgs[2] -eq '--auto-approve' -and $fullArgs[-1] -eq 'Шеф') 'Full setup lost automation or name'
+        $rulesArgs = @(Get-SetupArguments -Entry $entry -RulesOnly)
+        Assert-True ($rulesArgs[1] -eq 'install' -and $rulesArgs[2] -eq '--rules-only') 'Rules-only mode changed'
+        Assert-Failure { Get-SetupArguments -Entry $entry -RulesOnly -QuietCompletion } '*Choose either*'
+    }
     $versionSource = Join-Path $testRoot 'version check'; New-Item -ItemType Directory $versionSource | Out-Null
     Test-Case 'minimum version rejects stale setup before any installation' {
-        Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"mansur-antigravity-setup","version":"2.1.11"}'
-        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.12' } '*older than required 2.1.12*'
+        Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"mansur-antigravity-setup","version":"2.1.12"}'
+        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.13' } '*older than required 2.1.13*'
     }
     Test-Case 'current and newer releases satisfy the minimum version' {
-        foreach ($version in @('2.1.12','2.1.13','2.2.0')) {
+        foreach ($version in @('2.1.13','2.1.14','2.2.0')) {
             Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value ('{"name":"mansur-antigravity-setup","version":"' + $version + '"}')
-            $verified = Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.12'
+            $verified = Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.13'
             Assert-True ($verified.version -eq $version) 'Valid current release was rejected'
         }
     }
     Test-Case 'wrong identities and non-release versions are rejected' {
         Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"unexpected","version":"99.0.0"}'
-        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.12' } '*Unexpected downloaded package identity*'
-        Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"mansur-antigravity-setup","version":"2.1.12-old"}'
-        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.12' } '*invalid release version*'
+        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.13' } '*Unexpected downloaded package identity*'
+        Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"mansur-antigravity-setup","version":"2.1.13-old"}'
+        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.13' } '*invalid release version*'
     }
     Test-Case 'IWR timeout retries and replaces the partial file' {
         $networkTest.requestMode = 'retry'
@@ -192,6 +204,13 @@ $global:LASTEXITCODE = 0
     $readme = Get-Content -LiteralPath (Join-Path $repo 'README.md') -Raw -Encoding UTF8
     $launcherText = [regex]::Match($readme, '(?s)```powershell\s*\r?\n(.*?)\r?\n```').Groups[1].Value
     $launcher = [scriptblock]::Create($launcherText)
+    Test-Case 'README quiet launcher downloads fresh source with the completion-only switch' {
+        $quietText = [regex]::Matches($readme, '(?s)```powershell\s*\r?\n(.*?)\r?\n```') | ForEach-Object { $_.Groups[1].Value } | Where-Object { $_ -match '-QuietCompletion' }
+        Assert-True (@($quietText).Count -eq 1) 'Exactly one quiet completion bootstrap command is required'
+        $networkTest.expectedTimeout = 120; $networkTest.requestMode = 'launcher'; $networkTest.expectedQuiet = $true
+        & ([scriptblock]::Create($quietText))
+        Assert-True ($networkTest.launches -eq 1 -and -not (Test-Path $networkTest.launchedFile)) 'Quiet launcher cleanup broken'
+    }
     Test-Case 'README launcher downloads with timeout and cleans its script' {
         $networkTest.expectedTimeout = 120; $networkTest.requestMode = 'launcher'
         & $launcher

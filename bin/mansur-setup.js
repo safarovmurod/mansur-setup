@@ -84,7 +84,9 @@ COMMANDS:
   permissions         Apply global MCP auto-allow with Antigravity closed
   permissions-restore [dir] Restore only MCP preferences from a private backup
   automation          Enable native terminal/artifact Always Proceed and MCP Allow;
-                      wait in the background for a normal IDE shutdown when needed
+                      disable native AI Tab; wait for a normal IDE shutdown when needed
+  quiet-completion    Disable AI Tab/next-edit and transparent inline suggestions;
+                      preserve ordinary IntelliSense and existing chat approvals
   automation-restore [dir] Restore only automation preferences from a private backup
   doctor              Diagnose prerequisites, paths, and settings health
   backup              Create a manual backup of current settings & rules
@@ -135,6 +137,14 @@ function main() {
   const envPaths = getEnvironmentPaths();
 
   switch (opts.command) {
+    case 'quiet-completion': {
+      try {
+        const result = require('../lib/quiet-completion').applyQuietCompletion(envPaths, { dryRun: opts.dryRun });
+        console.log(JSON.stringify(result, null, 2));
+        process.exit(result.success ? 0 : 1);
+      } catch (error) { console.error(error.message); process.exit(1); }
+      break;
+    }
     case 'automation': {
       try {
         const result = require('../lib/agent-automation').queueAutomation(envPaths, { dryRun: opts.dryRun });

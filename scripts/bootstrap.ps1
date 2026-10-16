@@ -1,5 +1,5 @@
-param([string]$Name = '', [switch]$RulesOnly, [switch]$DryRun,
-    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$MinimumVersion = '2.1.12')
+param([string]$Name = '', [switch]$RulesOnly, [switch]$QuietCompletion, [switch]$DryRun,
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$MinimumVersion = '2.1.13')
 # Windows PowerShell 5.1 compatible. Run from the Antigravity PowerShell terminal.
 $ErrorActionPreference = 'Stop'
 # Kept in this single file so the README can bootstrap without downloading helpers.
@@ -80,6 +80,15 @@ function Assert-SetupPackage {
     }
     return $package
 }
+function Get-SetupArguments {
+    param([string]$Entry, [switch]$RulesOnly, [switch]$QuietCompletion, [string]$Name = '')
+    if ($RulesOnly -and $QuietCompletion) { throw 'Choose either RulesOnly or QuietCompletion' }
+    if ($QuietCompletion) { return @($Entry, 'quiet-completion') }
+    $arguments = @($Entry, 'install')
+    if ($RulesOnly) { $arguments += '--rules-only' } else { $arguments += '--auto-approve' }
+    if ($Name) { $arguments += @('--name', $Name) }
+    return $arguments
+}
 function Refresh-SetupPath {
     $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
         [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + $script:originalPath
@@ -97,6 +106,7 @@ function Install-Prerequisite {
 $setupTemp = $null
 $stage = 'Check Windows prerequisites'
 try {
+    if ($RulesOnly -and $QuietCompletion) { throw 'Choose either RulesOnly or QuietCompletion' }
     if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) { throw 'Bootstrap requires Windows 10/11' }
     $script:originalPath = $env:Path
     Refresh-SetupPath
@@ -119,8 +129,8 @@ try {
     Write-Host '[2/4] Checking Git for GitHub package download...'
     if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) { Install-Prerequisite -Id 'Git.Git' }
     if ($DryRun) {
-        Write-Host "[3/4] [DRY-RUN] Would resolve current main, require setup >=$MinimumVersion and run native automation (or rules-only)."
-        Write-Host '[4/4] [DRY-RUN] Would run Doctor. No prerequisites or setup files changed.'
+        Write-Host "[3/4] [DRY-RUN] Would resolve current main, require setup >=$MinimumVersion and run the selected setup mode."
+        Write-Host '[4/4] [DRY-RUN] Full mode runs Doctor; scoped modes report their own results. No files changed.'
         exit 0
     }
     $node = Get-Command node.exe -ErrorAction Stop
@@ -149,13 +159,13 @@ try {
     if (-not (Test-Path -LiteralPath $entry -PathType Leaf) -or -not (Test-Path -LiteralPath $packagePath -PathType Leaf)) { throw 'Downloaded archive is incomplete; no setup files changed.' }
     $package = Assert-SetupPackage -Source $source -MinimumVersion $MinimumVersion
     Write-Host ('  Package ' + $package.version + '; source ' + $commit)
-    $setupArgs = @($entry, 'install')
-    if ($RulesOnly) { $setupArgs += '--rules-only' } else { $setupArgs += '--auto-approve' }
-    if ($Name) { $setupArgs += @('--name', $Name) }
+    $setupArgs = Get-SetupArguments -Entry $entry -RulesOnly:$RulesOnly -QuietCompletion:$QuietCompletion -Name $Name
     $stage = 'Install profile'
     & $node.Source @setupArgs
     if ($LASTEXITCODE -ne 0) { throw "Setup returned exit $LASTEXITCODE; read the failed stage above. Doctor is not reported as passed." }
-    if ($RulesOnly) {
+    if ($QuietCompletion) {
+        Write-Host '[4/4] AI completion settings saved or queued. Read the native result/status above; chat approvals were preserved.'
+    } elseif ($RulesOnly) {
         Write-Host '[4/4] Rules-only install completed; full IDE Doctor is not applicable to this scoped mode.'
     } else {
         Write-Host '[4/4] Checking installed setup with Doctor...'
@@ -163,7 +173,11 @@ try {
         & $node.Source $entry doctor
         if ($LASTEXITCODE -ne 0) { throw "Doctor found failures (exit $LASTEXITCODE); read its report above." }
     }
-    Write-Host 'Setup stages complete. Save work, fully close every Antigravity window and reopen the IDE. Russian display language requires a full restart; Reload Window is insufficient.'
+    if ($QuietCompletion) {
+        Write-Host 'Save work, fully close every Antigravity window normally, then reopen the IDE. The background worker applies native AI Tab OFF after shutdown.'
+    } else {
+        Write-Host 'Setup stages complete. Save work, fully close every Antigravity window and reopen the IDE. Russian display language requires a full restart; Reload Window is insufficient.'
+    }
     exit 0
 } catch {
     Write-Error ("Mansur Setup stage '$stage': " + $_.Exception.Message) -ErrorAction Continue

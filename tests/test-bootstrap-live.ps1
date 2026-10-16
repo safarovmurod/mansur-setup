@@ -25,17 +25,19 @@ try {
     $downloadedAst = [Management.Automation.Language.Parser]::ParseFile($bootstrap, [ref]$tokens, [ref]$downloadErrors)
     if ($downloadErrors.Count) { throw 'Downloaded bootstrap has PowerShell syntax errors' }
     $functions = @($downloadedAst.EndBlock.Statements | Where-Object { $_ -is [Management.Automation.Language.FunctionDefinitionAst] })
-    if ('Assert-SetupPackage' -notin $functions.Name) { throw 'Downloaded bootstrap is stale: minimum-version guard missing' }
+    if ('Assert-SetupPackage' -notin $functions.Name -or 'Get-SetupArguments' -notin $functions.Name) { throw 'Downloaded bootstrap is stale: version guard or command routing missing' }
     foreach ($statement in $functions) { . ([scriptblock]::Create($statement.Extent.Text)) }
     $source = Get-SetupSource -GitPath $git -Commit $commit -Directory $directory
     $package = Assert-SetupPackage -Source $source -MinimumVersion $expectedVersion
     if ($package.version -ne $expectedVersion) { throw "Downloaded $($package.version), expected the published version $expectedVersion" }
     if ((Get-FileHash -LiteralPath $bootstrap).Hash -ne (Get-FileHash -LiteralPath (Join-Path $source 'scripts/bootstrap.ps1')).Hash) { throw 'Raw bootstrap and commit ZIP do not contain the same script' }
-    foreach ($required in @('lib/agent-automation.js', 'docs/AGENT-AUTOMATION.md', 'rules/GEMINI.template.md', 'config/settings.json')) {
+    foreach ($required in @('lib/agent-automation.js', 'lib/quiet-completion.js', 'docs/AGENT-AUTOMATION.md', 'rules/GEMINI.template.md', 'config/settings.json')) {
         if (-not (Test-Path -LiteralPath (Join-Path $source $required) -PathType Leaf)) { throw "New release file is missing: $required" }
     }
     $isolatedProfile = Join-Path $directory 'User with spaces'
     $entry = Join-Path $source 'bin/mansur-setup.js'
+    $quietArguments = @(Get-SetupArguments -Entry $entry -QuietCompletion)
+    if ($quietArguments.Count -ne 2 -or $quietArguments[0] -cne $entry -or $quietArguments[1] -cne 'quiet-completion') { throw 'Downloaded quiet launcher must invoke only the completion command' }
     & $node $entry install --rules-only --home $isolatedProfile
     if ($LASTEXITCODE -ne 0) { throw 'Downloaded rules installer failed' }
     $original = Join-Path $source 'rules/GEMINI.template.md'
@@ -66,6 +68,76 @@ for (const file of registry.files) {
   counts[area] = (counts[area] || 0) + 1;
 }
 console.log('PASS: downloaded full profile and repeat; every installed payload hash verified: ' + JSON.stringify(counts));
+const nativeSource = process.env.MANSUR_ANTIGRAVITY_MAIN;
+if (nativeSource) {
+  const { DatabaseSync } = require('node:sqlite');
+  const { applyQuietCompletion } = require(path.join(source, 'lib/quiet-completion'));
+  const { queueAutomation, TAB_TOPIC_KEY, TAB_POLICIES, readTabPolicies } = require(path.join(source, 'lib/agent-automation'));
+  const { TOPIC_KEY, stringField } = require(path.join(source, 'lib/mcp-permissions'));
+  const quietHome = path.join(home, 'Downloaded quiet completion');
+  const quietEnv = { ideRoot: path.join(quietHome, 'IDE'), userSettingsDir: path.join(quietHome, 'User'),
+    settingsJson: path.join(quietHome, 'User/settings.json'), geminiConfigDir: path.join(quietHome, '.gemini/config'),
+    backupsDir: path.join(quietHome, 'backups') };
+  const writeJson = (file, value) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(value)); };
+  const main = path.join(quietEnv.ideRoot, 'resources/app/out/main.js');
+  fs.mkdirSync(path.dirname(main), { recursive: true }); fs.copyFileSync(nativeSource, main);
+  writeJson(path.join(quietEnv.ideRoot, 'resources/app/product.json'), { ideVersion: '2.5.5' });
+  const inline = 'editor.inlineSuggest.enabled';
+  const beforeSettings = { [inline]: true, 'editor.suggestOnTriggerCharacters': true,
+    'typescript.suggest.autoImports': true, 'javascript.suggest.autoImports': true,
+    'editor.suggest.showFiles': true, 'editor.suggest.showFolders': true,
+    'chat.tools.terminal.autoApprove': { 'npm install': false, 'git status': true },
+    '[javascript][typescript]': { [inline]: true, 'editor.defaultFormatter': 'personal.formatter' },
+    '[python]': { [inline]: true, 'editor.tabSize': 8 }, 'personal.setting': 'retain' };
+  writeJson(quietEnv.settingsJson, beforeSettings);
+  const profileFile = path.join(quietEnv.geminiConfigDir, 'mansur-setup/editor-profile.json');
+  writeJson(profileFile, { schema: 1, requestId: require('node:crypto').randomUUID(), setupVersion: '2.1.12', locale: 'ru',
+    settings: { 'chat.tools.terminal.autoApprove': { 'npm install': true }, 'editor.fontSize': 99 } });
+  const dbFile = path.join(quietEnv.userSettingsDir, 'globalStorage/state.vscdb');
+  fs.mkdirSync(path.dirname(dbFile), { recursive: true });
+  const db = new DatabaseSync(dbFile);
+  const agentBefore = 'PRIVATE-OPAQUE-AGENT-PREFERENCES';
+  const entry = (key, value) => stringField(1, Buffer.concat([stringField(1, key), stringField(2, stringField(1, Buffer.from([16, value]).toString('base64')))]));
+  try {
+    db.exec('CREATE TABLE ItemTable(key TEXT PRIMARY KEY,value TEXT)');
+    const insert = db.prepare('INSERT INTO ItemTable VALUES(?,?)');
+    insert.run(TOPIC_KEY, agentBefore);
+    insert.run(TAB_TOPIC_KEY, Buffer.concat([entry('tabEnabled', 2), entry('autocompleteSpeed', 3)]).toString('base64'));
+    insert.run('private-account-row', 'PRIVATE-ACCOUNT-RETAIN');
+  } finally { db.close(); }
+  const queue = (receivedEnv, options) => {
+    assert.equal(receivedEnv, quietEnv); assert.equal(options.scope, 'completion');
+    return queueAutomation(receivedEnv, { ...options, isRunning: () => false });
+  };
+  const first = applyQuietCompletion(quietEnv, { queue });
+  assert.equal(first.success, true); assert.equal(first.editor.changed, true);
+  assert.equal(first.native.applied, true); assert.equal(first.native.scope, 'completion');
+  assert.equal(first.native.runtimeVerified, false); assert.deepEqual(first.native.storedTabPolicies, TAB_POLICIES);
+  const savedSettings = fs.readFileSync(quietEnv.settingsJson), savedProfile = fs.readFileSync(profileFile);
+  const settings = JSON.parse(savedSettings), profile = JSON.parse(savedProfile);
+  assert.equal(settings[inline], false);
+  for (const key of ['[javascript]', '[javascriptreact]', '[typescript]', '[typescriptreact]', '[javascript][typescript]', '[python]']) assert.equal(settings[key][inline], false);
+  for (const key of ['editor.suggestOnTriggerCharacters', 'typescript.suggest.autoImports', 'javascript.suggest.autoImports', 'editor.suggest.showFiles', 'editor.suggest.showFolders']) assert.equal(settings[key], true);
+  assert.deepEqual(settings['chat.tools.terminal.autoApprove'], beforeSettings['chat.tools.terminal.autoApprove']);
+  assert.equal(settings['[javascript][typescript]']['editor.defaultFormatter'], 'personal.formatter');
+  assert.equal(settings['[python]']['editor.tabSize'], 8); assert.equal(settings['personal.setting'], 'retain');
+  assert.deepEqual(Object.keys(profile.settings).filter(key => !key.startsWith('[')), [inline]);
+  for (const [key, value] of Object.entries(profile.settings)) {
+    if (key.startsWith('[')) assert.deepEqual(value, { [inline]: false });
+  }
+  const verifyDb = new DatabaseSync(dbFile, { readOnly: true });
+  try {
+    const get = key => verifyDb.prepare('SELECT value FROM ItemTable WHERE key=?').get(key)?.value;
+    assert.equal(get(TOPIC_KEY), agentBefore); assert.equal(get('private-account-row'), 'PRIVATE-ACCOUNT-RETAIN');
+    assert.deepEqual(readTabPolicies(get(TAB_TOPIC_KEY)), { tabEnabled: 1, tabToJump: 2 });
+  } finally { verifyDb.close(); }
+  const repeat = applyQuietCompletion(quietEnv, { queue });
+  assert.equal(repeat.success, true); assert.equal(repeat.editor.changed, false); assert.equal(repeat.native.changed, false);
+  assert.deepEqual(fs.readFileSync(quietEnv.settingsJson), savedSettings); assert.deepEqual(fs.readFileSync(profileFile), savedProfile);
+  console.log('PASS: downloaded completion-only command disables native AI Tab/next-edit and ghost text; IntelliSense, language preferences and exact chat/account bytes retained; repeat is stable.');
+} else {
+  console.log('SKIP: downloaded native quiet-completion integration needs MANSUR_ANTIGRAVITY_MAIN from the audited official 2.5.5 build.');
+}
 console.log('NOTE: external font/gallery/browser provisioning and live native chat were not run by this isolated check.');
 '@
     & $node -e $verifyDownloaded $source $isolatedProfile
