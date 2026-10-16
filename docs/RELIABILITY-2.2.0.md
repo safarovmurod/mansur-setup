@@ -76,3 +76,5 @@ The workflow verifies the official installer checksum before execution and `main
 Results separate native storage/effective editor API checks from authenticated chat or model-generated suggestions. The test does not log in as the user. Linux unit/orchestration tests and offline SQLite results do not establish a passing Windows workflow; use the actual Actions run and artifact for that claim.
 
 The IDE harness loads the production `profile.cjs` module directly. Packaged helper activation and startup recovery have separate unit/build coverage; this smoke does not establish their real IDE lifecycle.
+
+The [actual Windows run for source `31e40b4`](https://github.com/safarovmurod/mansur-setup/actions/runs/38963163258) passed, including the normal-close/apply/reopen lifecycle, actual TypeScript completions and exact single-folder conflict source. The observed checks and exact source commits are recorded in [RELIABILITY-VERIFICATION.json](RELIABILITY-VERIFICATION.json).
