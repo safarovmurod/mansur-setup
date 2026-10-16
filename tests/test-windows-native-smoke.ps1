@@ -42,9 +42,22 @@ $runtime = Join-Path $directory 'protobuf'
 if ($LASTEXITCODE -ne 0) { throw 'Could not install isolated pinned official protobuf test runtime' }
 $env:MANSUR_PROTOBUF_RUNTIME = Join-Path $runtime 'node_modules/@bufbuild/protobuf'
 $stage = 'official codec, compatibility, preflight, rollback and recovery checks'
-& node --test (Join-Path $PSScriptRoot 'test-agent-automation-native.mjs') (Join-Path $PSScriptRoot 'test-native-compatibility.mjs') (Join-Path $PSScriptRoot 'test-installer-preflight.mjs') (Join-Path $PSScriptRoot 'test-rollback.mjs') (Join-Path $PSScriptRoot 'test-setup-status.mjs') 2>&1 |
+$testReport = Join-Path $ArtifactDirectory 'native-tests.xml'
+& node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit "--test-reporter-destination=$testReport" (Join-Path $PSScriptRoot 'test-agent-automation-native.mjs') (Join-Path $PSScriptRoot 'test-native-compatibility.mjs') (Join-Path $PSScriptRoot 'test-installer-preflight.mjs') (Join-Path $PSScriptRoot 'test-rollback.mjs') (Join-Path $PSScriptRoot 'test-setup-status.mjs') 2>&1 |
     Tee-Object -FilePath (Join-Path $ArtifactDirectory 'native-codec-preflight.log')
-if ($LASTEXITCODE -ne 0) { throw 'Official codec, compatibility or production preflight checks failed' }
+if ($LASTEXITCODE -ne 0) {
+    if (Test-Path -LiteralPath $testReport) {
+        [xml]$junit = Get-Content -LiteralPath $testReport -Raw
+        $failedTests = @($junit.SelectNodes('//failure') | ForEach-Object {
+            @{ test = $_.ParentNode.name; detail = $_.InnerText.Substring(0, [Math]::Min(6000, $_.InnerText.Length)) }
+        })
+        foreach ($failedTest in $failedTests) {
+            $annotation = ($failedTest.test + ': ' + $failedTest.detail).Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Host ('::error title=Native Windows test failed::' + $annotation)
+        }
+    }
+    throw 'Official codec, compatibility or production preflight checks failed'
+}
 $stage = 'actual IDE open, queue, normal close, apply and reopen'
 & node (Join-Path $PSScriptRoot 'windows-native-smoke/controller.cjs') $ideRoot $executable $directory $ArtifactDirectory 2>&1 |
     Tee-Object -FilePath (Join-Path $ArtifactDirectory 'controller.log')
@@ -52,6 +65,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Actual Windows/native IDE smoke failed; inspec
 Get-Content -LiteralPath (Join-Path $ArtifactDirectory 'result.json') -Raw
 } catch {
     $failure = @{ passed = $false; stage = $stage; startedAt = $started; completedAt = [DateTime]::UtcNow.ToString('o'); error = $_.Exception.Message }
+    if ($failedTests) { $failure.tests = $failedTests }
     foreach ($name in @('runtime-failure.json', 'failure.json')) {
         $detailFile = Join-Path $ArtifactDirectory $name
         if (Test-Path -LiteralPath $detailFile) {
