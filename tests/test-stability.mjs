@@ -17,7 +17,7 @@ function editorProfile(t, options = {}) {
   t.after(() => fs.rmSync(base, { recursive: true, force: true }));
   const file = path.join(base, 'editor-profile.json');
   const settings = require('../config/settings.json');
-  const plan = { schema: 1, requestId: randomUUID(), setupVersion: '2.1.8', locale: 'ru', settings };
+  const plan = { schema: 1, requestId: randomUUID(), setupVersion: require('../package.json').version, locale: 'ru', settings };
   fs.writeFileSync(file, JSON.stringify(plan));
   const values = { 'user.unrelated': 'KEEP', 'editor.fontSize': 9, '[typescript]': { 'editor.tabSize': 7 }, ...options.values };
   const state = {}, updates = [];
@@ -49,6 +49,15 @@ test('Editor applies the whole managed profile, selects formatter/icons and keep
   assert.equal(f.values['editor.inlineSuggest.enabled'], false);
   assert.equal(f.values['editor.suggestOnTriggerCharacters'], true);
   assert.equal(f.values['typescript.suggest.autoImports'], true);
+  assert.equal(f.values['editor.wordBasedSuggestions'], 'off');
+  assert.equal(f.values['editor.snippetSuggestions'], 'none');
+  assert.equal(f.values['editor.suggest.showWords'], false);
+  assert.equal(f.values['editor.suggest.showKeywords'], false);
+  assert.equal(f.values['editor.suggest.showVariables'], true);
+  assert.equal(f.values['editor.suggest.showFunctions'], true);
+  assert.equal(f.values['editor.suggest.showClasses'], true);
+  assert.equal(f.values['editor.suggest.showFiles'], true);
+  assert.equal(f.values['emmet.showExpandedAbbreviation'], 'never');
   assert.equal(f.values['[typescript]']['editor.tabSize'], 7);
   assert.equal(f.values['[typescript]']['editor.inlineSuggest.enabled'], false);
   assert.equal(f.values['user.unrelated'], 'KEEP');

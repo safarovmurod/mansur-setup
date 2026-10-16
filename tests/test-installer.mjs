@@ -126,7 +126,12 @@ test('Invalid configuration error includes its path without exposing private JSO
 
 test('Repository declares the exact current settings, rules, guides and three local extensions', () => {
   const settings = readJson(path.join(repoRoot, 'config/settings.json'));
-  assert.equal(Object.keys(settings).length, 220);
+  assert.equal(Object.keys(settings).length, 233);
+  assert.equal(settings['editor.wordBasedSuggestions'], 'off');
+  assert.equal(settings['editor.suggest.showKeywords'], false);
+  assert.equal(settings['editor.suggest.showVariables'], true);
+  assert.equal(settings['typescript.suggest.autoImports'], true);
+  assert.equal(settings['javascript.suggest.autoImports'], true);
   assert.equal(settings['chat.tools.terminal.autoApprove']['npx tsc --noEmit'], true);
   assert.ok(readJson(path.join(repoRoot, 'config/antigravity-settings.json')).permissions.allow.includes('command(npx tsc --noEmit)'));
   assert.deepEqual(fs.readdirSync(path.join(repoRoot, 'rules')).sort(), [

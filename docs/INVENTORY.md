@@ -1,10 +1,10 @@
-# Инвентари Antigravity — 14.10.2026
+# Инвентари Antigravity — 16.10.2026
 
 Ин рӯйхат snapshot-и конфигуратсияи шахсии ҳозира аст. Source-и ҳар қисми насб дар ҳамин repo аст; маълумоти account/credential ба он дохил намешавад.
 
 | Қисм | Шумора | Source |
 |---|---:|---|
-| Editor settings | 220 key | [config/settings.json](../config/settings.json) |
+| Editor settings | 233 key | [config/settings.json](../config/settings.json) |
 | Keybindings | 15 binding | [config/keybindings.json](../config/keybindings.json) |
 | Global GEMINI.md | 1 | [rules/GEMINI.template.md](../rules/GEMINI.template.md) |
 | Contextual rules | 2 | [rules/](../rules/) |

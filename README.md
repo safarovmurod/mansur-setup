@@ -1,6 +1,6 @@
 # Mansur · Antigravity IDE
 
-Конфиги охирини Antigravity-и шеф барои Windows. **Setup 2.1.10.** Settings, MD, skills, agents, hooks, runtime ва **21 extension** бо як команда барқарор мешаванд. Jelly Cursor дар catalog ҳамчун extension-и ихтиёрӣ мемонад. Версияҳои extension дар ҳамин repo нигоҳ дошта мешаванд: **TS MANCHO 3.1.2**, **Mansur Antigravity Stability 1.1.0** ва **Mansur GitHub Panel 1.2.1** ҳам дохиланд.
+Конфиги охирини Antigravity-и шеф барои Windows. **Setup 2.1.11.** Settings, MD, skills, agents, hooks, runtime ва **21 extension** бо як команда барқарор мешаванд. Jelly Cursor дар catalog ҳамчун extension-и ихтиёрӣ мемонад. Версияҳои extension дар ҳамин repo нигоҳ дошта мешаванд: **TS MANCHO 3.1.2**, **Mansur Antigravity Stability 1.1.0** ва **Mansur GitHub Panel 1.2.1** ҳам дохиланд.
 
 **[Скачать TS MANCHO 3.1.2 (.vsix)](https://github.com/safarovmurod/mansur-setup/raw/main/extensions/ts-mancho/ts-mancho-3.1.2.vsix)** — насб: Extensions → Install from VSIX. Quiet mode хатҳои сурх/зардро дар тамоми editor ва unused hints-ро дар JS/TS пинҳон мекунад; санҷиши TypeScript фаъол мемонад. Сохтани VSIX аз source: `npm run build:ts-mancho`.
 
@@ -47,7 +47,7 @@ Antigravity IDE-ро кушо → **Terminal → New Terminal → PowerShell**. 
 }
 ```
 
-Команда bootstrap-и охирини `main`-ро бо cache-busting URL мегирад, commit-и ҷориро як бор муайян мекунад ва install + Doctor-ро аз ҳамон commit иҷро мекунад. Setup 2.1.10, TS MANCHO 3.1.2, роҳҳои ислоҳшудаи agent ва hook-ҳои бо quote ба ҳамин download дохиланд. VSIX-и кӯҳна дар архиви ҷорӣ нест; нусхаи кӯҳнаи npm cache истифода намешавад. Node.js ≥24, npm ≥10 ва Git санҷида мешаванд; агар лозим бошад, bootstrap онҳоро бо `winget` насб мекунад. `-Name "Шеф"` танҳо номи log аст. Дар log бояд **Package 2.1.10** ё версияи навтар барояд.
+Команда bootstrap-и охирини `main`-ро бо cache-busting URL мегирад, commit-и ҷориро як бор муайян мекунад ва install + Doctor-ро аз ҳамон commit иҷро мекунад. Setup 2.1.11, филтри нави подсказкаҳо, TS MANCHO 3.1.2, роҳҳои ислоҳшудаи agent ва hook-ҳои бо quote ба ҳамин download дохиланд. VSIX-и кӯҳна дар архиви ҷорӣ нест; нусхаи кӯҳнаи npm cache истифода намешавад. Node.js ≥24, npm ≥10 ва Git санҷида мешаванд; агар лозим бошад, bootstrap онҳоро бо `winget` насб мекунад. `-Name "Шеф"` танҳо номи log аст. Дар log бояд **Package 2.1.11** ё версияи навтар барояд.
 
 **Агар интернет суст бошад:** download то 3 кӯшиш мекунад. Bootstrap timeout-и 120 сония, ZIP timeout-и 600 сония дорад. Агар сервери ZIP дастнорас бошад, ҳамон commit бо Git аз `github.com` гирифта мешавад. Барои ислоҳи timeout командаи навро аз ҳамин README пурра нусха гир; TLS ва hash-check хомӯш намешаванд.
 
@@ -59,7 +59,7 @@ Jelly Cursor танҳо ороиши курсор аст ва барои React/T
 
 **Настройкаҳои extension-и аллакай насбшуда ҳам татбиқ мешаванд.** Helper 1.1.0 plan-и `~/.gemini/config/mansur-setup/editor-profile.json`-ро мехонад ва танзимоти дастгиришавандаро бо API-и editor дар profile-и фаъол менависад: theme/icons, Prettier барои JS/TS/React, Auto Save, font, smooth caret ва typing pulse. Натиҷа дар **Output → Mansur Antigravity Stability** аст. Command-и дастӣ: **Mansur: Apply and Check Editor Settings**. Project override-и мухолиф нишон дода мешавад; settings-и project пинҳонӣ иваз намешавад.
 
-**Подсказкаҳо:** AI inline/ghost text хомӯш; IntelliSense-и оддӣ, keyword-и `const`, номҳои component, path ва auto-import фаъол мемонанд. Helper switch-ҳои autocomplete-и Antigravity/Codeium-ро танҳо аз schema-и extension-и насбшуда ёфта хомӯш мекунад; option-и номавҷуд сохта намешавад.
+**Подсказкаҳо:** AI inline/ghost text, word-based, keyword, snippet, Emmet, parameter hints ва категорияҳои зиёдатии native completion хомӯшанд. Номҳои переменнаяҳои худат, import-и JS/TS/TSX, номи component ва роҳи файл/папка мемонанд. Барои он ки auto-import-и function/class/type низ кор кунад, категорияҳои онҳо фаъоланд; VS Code настройкаи алоҳидаи «фақат imported function/class, на local function/class» надорад. Helper switch-ҳои autocomplete-и Antigravity/Codeium-ро танҳо аз schema-и extension-и насбшуда ёфта хомӯш мекунад. Ду қисми код бо хатҳои сурх дар скрин — **diff/review-и тағйирот** аст, на менюи подсказка; ин филтр diff-ро намебандад.
 
 **MCP:** `docker-mcp` ва `github-mcp-server` дигар илова/скачат намешаванд. Update ин ду entry-ро аз ҳар ду config бо backup мебарорад. GSD, Sequential Thinking ва Chrome DevTools мемонанд.
 
@@ -67,7 +67,7 @@ Jelly Cursor танҳо ороиши курсор аст ва барои React/T
 
 | Қисм | Конфиги ҳозира | Ҷойи насб |
 |---|---|---|
-| Editor settings | 220 key, snapshot-и пурра | `%APPDATA%\Antigravity IDE\User\settings.json` |
+| Editor settings | 233 key, snapshot-и пурра | `%APPDATA%\Antigravity IDE\User\settings.json` |
 | Keybindings | 15 binding | `%APPDATA%\Antigravity IDE\User\keybindings.json` |
 | Startup / locale | Аргументҳои идорашавандаи ҳозира | `~/.antigravity-ide/argv.json` |
 | MD / rules / guides | GEMINI.md, 2 rule, 2 guide | `~/.gemini/GEMINI.md`, `~/.gemini/config/` |
@@ -103,9 +103,9 @@ node bin/mansur-setup.js restore --dry-run
 
 ## Санҷиш
 
-[Аудити Setup 2.1.10: ислоҳҳо, тестҳо ва маҳдудиятҳо](docs/REPOSITORY-AUDIT.md). Doctor акнун файлҳои payload, hooks, keybindings, MCP launcher-ҳо ва extension-ҳои ҳатмиро пурра муқоиса мекунад; набудани қисми ҳатмӣ дигар ҳамчун муваффақият ҳисоб намешавад. Backup-и нав набудани config-и пешина ва rule-ҳои дохили зерпапкаро ҳам барқарор мекунад.
+[Аудити Setup 2.1.10 (таърихӣ): ислоҳҳо, тестҳо ва маҳдудиятҳо](docs/REPOSITORY-AUDIT.md). Doctor акнун файлҳои payload, hooks, keybindings, MCP launcher-ҳо ва extension-ҳои ҳатмиро пурра муқоиса мекунад; набудани қисми ҳатмӣ дигар ҳамчун муваффақият ҳисоб намешавад. Backup-и нав набудани config-и пешина ва rule-ҳои дохили зерпапкаро ҳам барқарор мекунад.
 
-[Отчёти санҷиш ва hash-ҳо](docs/PROFILE-SYNC-REPORT.json) · [CI-и main](https://github.com/safarovmurod/mansur-setup/actions/workflows/setup-checks.yml) · [Inventory](docs/INVENTORY.md)
+[Отчёти санҷиш ва hash-ҳои Setup 2.1.10 (таърихӣ)](docs/PROFILE-SYNC-REPORT.json) · [CI-и main](https://github.com/safarovmurod/mansur-setup/actions/workflows/setup-checks.yml) · [Inventory](docs/INVENTORY.md)
 
 ```powershell
 npm.cmd test
@@ -133,7 +133,7 @@ Doctor файлҳо, versions ва settings-ро месанҷад. Authorization
 | Tailwind CSS IntelliSense | Барои Tailwind CSS autocomplete ва санҷиши классҳо медиҳад. |
 | npm Intellisense | Номи npm package-ҳоро ҳангоми import пешниҳод мекунад. |
 | Path Intellisense | Роҳи файл ва папкаҳоро autocomplete мекунад. |
-| ES7+ React/Redux/React-Native snippets | Шаблонҳои кӯтоҳи React, JavaScript ва TypeScript медиҳад. |
+| ES7+ React/Redux/React-Native snippets | Насб мемонад, вале snippet-подсказкаҳо дар меню хомӯшанд. |
 | Better Comments Next | TODO, warning ва дигар comment-ҳоро бо ранг ҷудо мекунад. |
 | Prettier - Code formatter | Кодро автоматӣ формат мекунад. |
 | Auto Rename Tag | Номи HTML tag-и ҷуфтро якҷоя иваз мекунад. |

@@ -89,7 +89,7 @@ async function selectedFeatures(vscode, folder, document, editor) {
 }
 
 async function run() {
-  if (process.env.MANSUR_VERIFY_EDITOR_PROFILE) return verifyEditorProfile();
+  if (process.env.MANSUR_VERIFY_EDITOR_PROFILE || process.env.MANSUR_VERIFY_COMPLETIONS) return verifyEditorProfile();
   const vscode = require('vscode');
   const extension = vscode.extensions.getExtension('mancho.ts-mancho');
   assert.ok(extension);
@@ -177,6 +177,7 @@ async function run() {
 
 async function verifyEditorProfile() {
   const vscode = require('vscode');
+  const completionsOnly = process.env.MANSUR_VERIFY_COMPLETIONS === '1';
   const { applyEditorProfile, isRegisteredSetting } = require('../extensions/mansur-antigravity-stability/profile.cjs');
   const { expectedSettings } = require('../lib/profile-settings');
   const folder = vscode.workspace.workspaceFolders[0].uri;
@@ -186,17 +187,22 @@ async function verifyEditorProfile() {
   // This editor has built-in/TS providers only; gallery-provider behavior is not claimed here.
   const settings = Object.fromEntries(Object.entries(complete).filter(([key]) => isRegisteredSetting(vscode, key)));
   const planFile = path.join(folder.fsPath, 'editor-profile.json');
-  fs.writeFileSync(planFile, JSON.stringify({ schema: 1, requestId: require('node:crypto').randomUUID(), setupVersion: '2.1.8', locale: 'ru', settings }));
+  fs.writeFileSync(planFile, JSON.stringify({ schema: 1, requestId: require('node:crypto').randomUUID(), setupVersion: require('../package.json').version, locale: 'ru', settings }));
   const result = await applyEditorProfile(vscode, context, { file: planFile });
   assert.deepEqual(result.failed, [], 'Every managed setting must apply through the real editor API');
   assert.deepEqual(result.overrides, []);
-  assert.equal(result.status, 'applied', JSON.stringify(result));
-  assert.match(vscode.env.language, /^ru(?:-|$)/);
+  assert.equal(result.status, completionsOnly ? 'restart-required' : 'applied', JSON.stringify(result));
+  if (!completionsOnly) assert.match(vscode.env.language, /^ru(?:-|$)/);
   const config = vscode.workspace.getConfiguration();
   assert.equal(config.get('workbench.iconTheme'), 'material-icon-theme');
   assert.equal(config.get('editor.defaultFormatter'), 'esbenp.prettier-vscode');
   assert.equal(config.get('editor.inlineSuggest.enabled'), false);
   assert.equal(config.get('typescript.suggest.autoImports'), true);
+  assert.equal(config.get('editor.wordBasedSuggestions'), 'off');
+  assert.equal(config.get('editor.snippetSuggestions'), 'none');
+  assert.equal(config.get('editor.suggest.showKeywords'), false);
+  assert.equal(config.get('editor.suggest.showVariables'), true);
+  assert.equal(config.get('emmet.showExpandedAbbreviation'), 'never');
   const defaultSettings = JSON.parse(fs.readFileSync(process.env.MANSUR_DEFAULT_SETTINGS_FILE, 'utf8'));
   assert.equal(defaultSettings['editor.quickSuggestionsDelay'], 987, 'The named profile receives the settings; the unrelated default profile stays unchanged');
   const uri = vscode.Uri.joinPath(folder, 'completion.ts');
@@ -209,17 +215,24 @@ async function verifyEditorProfile() {
     return list?.items.some(item => label(item) === 'const');
   }, 'native const keyword completion');
   await waitFor(async () => {
-    const list = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', uri, new vscode.Position(1, 3));
+    const list = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', uri, new vscode.Position(3, 3));
     return list?.items.some(item => label(item) === 'Card');
   }, 'native cross-component auto-import completion');
-  // The completion API returns an unfiltered list, with Card after hundreds of built-ins.
-  // Accept it through the real suggestion widget so the editor resolves and applies its import.
-  editor.selection = new vscode.Selection(new vscode.Position(1, 3), new vscode.Position(1, 3));
+  // The provider API is unfiltered. Check the actual widget after editor category filters.
   const suggestions = await rendererConnection();
   try {
+    const labels = `Array.from(document.querySelectorAll('.suggest-widget .monaco-list-row .label-name')).map(node => node.textContent)`;
+    editor.selection = new vscode.Selection(new vscode.Position(0, 3), new vscode.Position(0, 3));
+    await vscode.commands.executeCommand('editor.action.triggerSuggest');
+    await waitFor(async () => (await suggestions.evaluate(labels)).length > 0, 'filtered native suggestion widget opens');
+    assert.ok(!(await suggestions.evaluate(labels)).includes('const'), 'keyword suggestions are hidden in the real widget');
+    editor.selection = new vscode.Selection(new vscode.Position(2, 3), new vscode.Position(2, 3));
+    await vscode.commands.executeCommand('editor.action.triggerSuggest');
+    await waitFor(async () => (await suggestions.evaluate(labels)).includes('localVariable'), 'own variable remains in the native widget');
+    editor.selection = new vscode.Selection(new vscode.Position(3, 3), new vscode.Position(3, 3));
     await vscode.commands.executeCommand('editor.action.triggerSuggest');
     const selected = `document.querySelector('.suggest-widget .monaco-list-row.focused .label-name')?.textContent`;
-    await waitFor(async () => !!await suggestions.evaluate(selected), 'native completion widget opens');
+    await waitFor(async () => (await suggestions.evaluate(labels)).includes('Card'), 'auto-import remains in the native widget');
     await vscode.commands.executeCommand('selectFirstSuggestion');
     for (let attempt = 0; attempt < 20 && await suggestions.evaluate(selected) !== 'Card'; attempt++) {
       await vscode.commands.executeCommand('selectNextSuggestion');
@@ -230,13 +243,45 @@ async function verifyEditorProfile() {
   } finally { suggestions.close(); }
   await waitFor(() => /import\s*\{\s*Card\s*\}\s*from\s*["']\.\/Card["']/.test(document.getText())
     && /^Card\s*$/m.test(document.getText()), 'accepting the native completion inserts Card and its component import');
+  const tsxUri = vscode.Uri.joinPath(folder, 'tsx-suggestions.tsx');
+  const tsxDocument = await vscode.workspace.openTextDocument(tsxUri);
+  const tsxEditor = await vscode.window.showTextDocument(tsxDocument);
+  await waitFor(async () => {
+    const list = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', tsxUri, new vscode.Position(3, 3));
+    return list?.items.some(item => label(item) === 'Panel');
+  }, 'native TSX component auto-import completion');
+  const tsxSuggestions = await rendererConnection();
+  try {
+    const labels = `Array.from(document.querySelectorAll('.suggest-widget .monaco-list-row .label-name')).map(node => node.textContent)`;
+    tsxEditor.selection = new vscode.Selection(new vscode.Position(0, 3), new vscode.Position(0, 3));
+    await vscode.commands.executeCommand('editor.action.triggerSuggest');
+    await waitFor(async () => (await tsxSuggestions.evaluate(labels)).length > 0, 'TSX suggestion widget opens');
+    assert.ok(!(await tsxSuggestions.evaluate(labels)).includes('const'), 'TSX keyword suggestions are hidden');
+    tsxEditor.selection = new vscode.Selection(new vscode.Position(2, 3), new vscode.Position(2, 3));
+    await vscode.commands.executeCommand('editor.action.triggerSuggest');
+    await waitFor(async () => (await tsxSuggestions.evaluate(labels)).includes('localWidget'), 'own TSX variable remains');
+    tsxEditor.selection = new vscode.Selection(new vscode.Position(3, 3), new vscode.Position(3, 3));
+    await vscode.commands.executeCommand('editor.action.triggerSuggest');
+    await waitFor(async () => (await tsxSuggestions.evaluate(labels)).includes('Panel'), 'TSX component import remains');
+    const selected = `document.querySelector('.suggest-widget .monaco-list-row.focused .label-name')?.textContent`;
+    await vscode.commands.executeCommand('selectFirstSuggestion');
+    for (let attempt = 0; attempt < 20 && await tsxSuggestions.evaluate(selected) !== 'Panel'; attempt++) {
+      await vscode.commands.executeCommand('selectNextSuggestion');
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    assert.equal(await tsxSuggestions.evaluate(selected), 'Panel');
+    await vscode.commands.executeCommand('acceptSelectedSuggestion');
+  } finally { tsxSuggestions.close(); }
+  await waitFor(() => /import\s*\{\s*Panel\s*\}\s*from\s*["']\.\/Panel["']/.test(tsxDocument.getText())
+    && /^Panel\s*$/m.test(tsxDocument.getText()), 'accepting TSX component completion inserts its import');
+  await vscode.window.showTextDocument(document);
   let inlineRequests = 0;
   const provider = vscode.languages.registerInlineCompletionItemProvider('typescript', { provideInlineCompletionItems() {
     inlineRequests++;
     return [new vscode.InlineCompletionItem('UNWANTED_AI_GHOST')];
   } });
   try {
-    editor.selection = new vscode.Selection(new vscode.Position(0, 3), new vscode.Position(0, 3));
+    editor.selection = new vscode.Selection(new vscode.Position(1, 3), new vscode.Position(1, 3));
     await vscode.commands.executeCommand('type', { text: 's' });
     await new Promise(resolve => setTimeout(resolve, 1200));
     assert.equal(inlineRequests, 0, 'Automatic inline completion providers stay disabled');
@@ -244,12 +289,17 @@ async function verifyEditorProfile() {
     try {
       const ui = await connection.evaluate(`({ language: document.documentElement.lang, ghost: document.querySelectorAll('.ghost-text').length, labels: Array.from(document.querySelectorAll('[aria-label]')).map(node => node.getAttribute('aria-label')).filter(label => /Проводник|Поиск|Расширения/.test(label)).slice(0, 5) })`);
       assert.equal(ui.ghost, 0);
-      assert.ok(ui.labels.length > 0, 'Official Russian UI strings are rendered: ' + JSON.stringify(ui));
+      if (!completionsOnly) assert.ok(ui.labels.length > 0, 'Official Russian UI strings are rendered: ' + JSON.stringify(ui));
       result.renderer = ui;
     } finally { connection.close(); }
   } finally { provider.dispose(); }
-  const evidence = { passed: true, editorVersion: vscode.version, localeSelection: '--locale=ru in the isolated editor; installer argv.json is checked separately', ...result,
-    checks: ['all registered built-in/TS settings applied through editor API', 'active named profile configured', 'Russian UI rendered after startup with selected locale', 'const keyword completion', 'cross-component auto-import', 'automatic inline provider not invoked', 'no ghost text'] };
+  const evidence = { passed: true, editorVersion: vscode.version,
+    localeSelection: completionsOnly ? 'Not verified in this completion-focused run; language pack download is unavailable' : '--locale=ru in the isolated editor; installer argv.json is checked separately', ...result,
+    checks: ['all registered built-in/TS settings applied through editor API', 'active named profile configured',
+      ...(!completionsOnly ? ['Russian UI rendered after startup with selected locale'] : []),
+      'keyword hidden from native widget', 'local variable shown', 'cross-component auto-import inserted',
+      'TSX keyword hidden and local variable preserved', 'TSX component auto-import inserted',
+      'automatic inline provider not invoked', 'no ghost text'] };
   fs.writeFileSync(process.env.MANSUR_EDITOR_RESULT, JSON.stringify(evidence, null, 2));
 }
 
@@ -276,9 +326,11 @@ async function launchEditor() {
   }));
   fs.writeFileSync(path.join(workspace, 'quiet.ts'), 'const age: number = "20";\nconst unused = "unused";\n(42).to');
   fs.writeFileSync(path.join(workspace, 'format.ts'), 'const sample={a:1,b:2};\n');
-  fs.writeFileSync(path.join(workspace, 'completion.ts'), 'con\nCar\n');
+  fs.writeFileSync(path.join(workspace, 'completion.ts'), 'con\nconst localVariable = 1;\nloc\nCar\n');
   fs.writeFileSync(path.join(workspace, 'Card.ts'), 'export const Card = () => "component";\n');
-  fs.writeFileSync(path.join(workspace, 'tsconfig.json'), JSON.stringify({ compilerOptions: { target: 'ES2022', module: 'ESNext' }, include: ['*.ts'] }));
+  fs.writeFileSync(path.join(workspace, 'tsx-suggestions.tsx'), 'con\nconst localWidget = 1;\nloc\nPan\n');
+  fs.writeFileSync(path.join(workspace, 'Panel.tsx'), 'export const Panel = () => null;\n');
+  fs.writeFileSync(path.join(workspace, 'tsconfig.json'), JSON.stringify({ compilerOptions: { target: 'ES2022', module: 'ESNext', jsx: 'preserve' }, include: ['*.ts', '*.tsx'] }));
   const env = { ...process.env, XDG_CACHE_HOME: path.join(base, 'cache'), XDG_CONFIG_HOME: path.join(base, 'config'),
     XDG_DATA_HOME: path.join(base, 'data'), MANSUR_EDITOR_RESULT: path.join(base, 'result.json'), MANSUR_DEFAULT_SETTINGS_FILE: path.join(userData, 'User/settings.json') };
   const extensions = path.join(base, 'empty-extensions');
@@ -321,7 +373,10 @@ async function launchEditor() {
       '--user-data-dir=' + userData, '--extensions-dir=' + extensions,
       '--extensionDevelopmentPath=' + development, '--extensionTestsPath=' + __filename,
       '--remote-debugging-port=' + env.MANSUR_EDITOR_CDP_PORT, '--remote-debugging-address=127.0.0.1', workspace];
-    if (env.MANSUR_VERIFY_EDITOR_PROFILE) args.push('--profile', 'Mansur Profile Verification', '--locale=ru');
+    if (env.MANSUR_VERIFY_EDITOR_PROFILE || env.MANSUR_VERIFY_COMPLETIONS) {
+      args.push('--profile', 'Mansur Profile Verification');
+      if (env.MANSUR_VERIFY_EDITOR_PROFILE) args.push('--locale=ru');
+    }
     const child = spawn(process.env.MANSUR_VSCODE_PATH || 'code', args, { env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
     let log = '';
     child.stdout.on('data', bytes => { log += bytes; });
