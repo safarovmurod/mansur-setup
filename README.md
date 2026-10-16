@@ -1,6 +1,6 @@
 # Mansur · Antigravity IDE
 
-Конфиги охирини Antigravity-и шеф барои Windows. **Setup 2.1.11.** Settings, MD, skills, agents, hooks, runtime ва **21 extension** бо як команда барқарор мешаванд. Jelly Cursor дар catalog ҳамчун extension-и ихтиёрӣ мемонад. Версияҳои extension дар ҳамин repo нигоҳ дошта мешаванд: **TS MANCHO 3.1.2**, **Mansur Antigravity Stability 1.1.0** ва **Mansur GitHub Panel 1.2.1** ҳам дохиланд.
+Конфиги охирини Antigravity-и шеф барои Windows. **Setup 2.1.12.** Settings, MD, skills, agents, hooks, runtime ва **21 extension** бо як команда барқарор мешаванд. Jelly Cursor дар catalog ҳамчун extension-и ихтиёрӣ мемонад. Версияҳои extension дар ҳамин repo нигоҳ дошта мешаванд: **TS MANCHO 3.1.2**, **Mansur Antigravity Stability 1.1.0** ва **Mansur GitHub Panel 1.2.1** ҳам дохиланд.
 
 **[Скачать TS MANCHO 3.1.2 (.vsix)](https://github.com/safarovmurod/mansur-setup/raw/main/extensions/ts-mancho/ts-mancho-3.1.2.vsix)** — насб: Extensions → Install from VSIX. Quiet mode хатҳои сурх/зардро дар тамоми editor ва unused hints-ро дар JS/TS пинҳон мекунад; санҷиши TypeScript фаъол мемонад. Сохтани VSIX аз source: `npm run build:ts-mancho`.
 
@@ -39,7 +39,7 @@ Antigravity IDE-ро кушо → **Terminal → New Terminal → PowerShell**. 
         Start-Sleep -Seconds (2 * $i)
       }
     }
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -Name "Шеф"
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -Name "Шеф" -MinimumVersion '2.1.12'
     if ($LASTEXITCODE -ne 0) { throw 'Mansur Setup failed; read the error above.' }
   } finally {
     if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Force }
@@ -47,7 +47,7 @@ Antigravity IDE-ро кушо → **Terminal → New Terminal → PowerShell**. 
 }
 ```
 
-Команда bootstrap-и охирини `main`-ро бо cache-busting URL мегирад, commit-и ҷориро як бор муайян мекунад ва install + Doctor-ро аз ҳамон commit иҷро мекунад. Setup 2.1.11, филтри нави подсказкаҳо, TS MANCHO 3.1.2, роҳҳои ислоҳшудаи agent ва hook-ҳои бо quote ба ҳамин download дохиланд. VSIX-и кӯҳна дар архиви ҷорӣ нест; нусхаи кӯҳнаи npm cache истифода намешавад. Node.js ≥24, npm ≥10 ва Git санҷида мешаванд; агар лозим бошад, bootstrap онҳоро бо `winget` насб мекунад. `-Name "Шеф"` танҳо номи log аст. Дар log бояд **Package 2.1.11** ё версияи навтар барояд.
+Команда bootstrap-и охирини `main`-ро бо cache-busting URL мегирад, commit-и ҷориро як бор муайян мекунад ва install + Doctor-ро аз ҳамон commit иҷро мекунад. Setup 2.1.12, филтри нави подсказкаҳо, TS MANCHO 3.1.2, роҳҳои ислоҳшудаи agent ва hook-ҳои бо quote ба ҳамин download дохиланд. VSIX-и кӯҳна дар архиви ҷорӣ нест; нусхаи кӯҳнаи npm cache истифода намешавад. Node.js ≥24, npm ≥10 ва Git санҷида мешаванд; агар лозим бошад, bootstrap онҳоро бо `winget` насб мекунад. `-Name "Шеф"` танҳо номи log аст. Дар log бояд **Package 2.1.12** ё версияи навтар барояд. `-MinimumVersion 2.1.12` версияи кӯҳнаро пеш аз install қатъ мекунад; версия ва commit дар log нишон дода мешаванд. MD, rules, skills, agents ва hooks аз ҳамон ZIP кушода насб мешаванд — download-и дастии ҷудогона лозим нест.
 
 **Агар интернет суст бошад:** download то 3 кӯшиш мекунад. Bootstrap timeout-и 120 сония, ZIP timeout-и 600 сония дорад. Агар сервери ZIP дастнорас бошад, ҳамон commit бо Git аз `github.com` гирифта мешавад. Барои ислоҳи timeout командаи навро аз ҳамин README пурра нусха гир; TLS ва hash-check хомӯш намешаванд.
 
@@ -67,7 +67,7 @@ Jelly Cursor танҳо ороиши курсор аст ва барои React/T
 
 | Қисм | Конфиги ҳозира | Ҷойи насб |
 |---|---|---|
-| Editor settings | 233 key, snapshot-и пурра | `%APPDATA%\Antigravity IDE\User\settings.json` |
+| Editor settings | 234 managed key; personal keys нигоҳ дошта мешаванд | `%APPDATA%\Antigravity IDE\User\settings.json` |
 | Keybindings | 15 binding | `%APPDATA%\Antigravity IDE\User\keybindings.json` |
 | Startup / locale | Аргументҳои идорашавандаи ҳозира | `~/.antigravity-ide/argv.json` |
 | MD / rules / guides | GEMINI.md, 2 rule, 2 guide | `~/.gemini/GEMINI.md`, `~/.gemini/config/` |
@@ -85,11 +85,11 @@ Antigravity метавонад дар C:, D: ё диски дигар насб �
 
 ## Иҷозатҳои чати Antigravity
 
-Барои `npx tsc --noEmit` дар editor ва agent қоидаи auto-approve илова шудааст. Барои иҷрои ҳамаи командаҳо бе пурсиш дар **Antigravity (Windows) → Settings → Agent → Terminal Command Auto Execution → Always Proceed** интихоб кун; барои бе review гузаштани планҳо **Artifact Review Policy → Always Proceed** интихоб кун. Ин интихобҳо танзимоти худи IDE мебошанд, на TS MANCHO. Онҳо хатарноканд: командаҳои вайронкунанда ҳам метавонанд бе тасдиқ иҷро шаванд. `Deny`-ҳо, policy-и ташкилот ва баъзе тасдиқҳои ҳатмӣ метавонанд боқӣ монанд. Баъди иваз кардани танзимот чати нав кушо. [Agent settings](https://www.antigravity.google/docs/agent-settings) · [Artifact review](https://www.antigravity.google/docs/artifact-review).
+Bootstrap ҳоло `install --auto-approve` иҷро мекунад: native **Terminal Command Auto Execution → Always Proceed**, **Artifact Review Policy → Always Proceed** ва MCP `mcp(*) Allow`. Барои IDE-и кушода worker-и бе window то пӯшидани одии ҳамаи window-ҳо интизор мешавад; IDE маҷбуран пӯшида намешавад. Backup ва read-back пеш аз натиҷаи `applied` ҳатмист. Коди native танҳо барои build-и санҷидашудаи **2.5.5** тағйир меёбад. Ин режим командаҳоро бе тасдиқи одӣ иҷро мекунад; Secure Mode, policy-и ташкилот, project override ва авторизатсияи аккаунт боқӣ мемонанд. [Механизм, status, rollback ва натиҷаҳои санҷиш](docs/AGENT-AUTOMATION.md).
 
 ## Update ва тозакунии кӯҳнаҳо
 
-Installer пеш аз тағйир backup месозад. Settings ва keybindings пурра ба snapshot-и ҳозира мегузаранд. Файлҳои кӯҳнаи аз ҳамин setup насбшуда бо ownership/hash шинохта, тоза мешаванд. Launcher-ҳои MCP нав мешаванд; token, headers-и authorization ва ҳолати enable/disable нигоҳ дошта мешаванд. TS MANCHO-и кӯҳна аз папкаи фаъол бо backup бароварда мешавад.
+Installer пеш аз тағйир backup месозад. Managed settings ва shortcut-ҳо нав мешаванд; key-ҳои шахсӣ, shortcut-ҳои бегона ва deny-и явнии command нигоҳ дошта мешаванд. Файлҳои кӯҳнаи аз ҳамин setup насбшуда бо ownership/hash шинохта, тоза мешаванд. Launcher-ҳои MCP нав мешаванд; token, headers-и authorization ва ҳолати enable/disable нигоҳ дошта мешаванд. TS MANCHO-и кӯҳна аз папкаи фаъол бо backup бароварда мешавад.
 
 Файли шахсии таҳриршуда conflict нишон медиҳад; installer онро пинҳонӣ пок намекунад. `config/migrations/legacy-payload.json` танҳо catalog-и тозакунии setup-и пешина аст — rule-и фаъол ё нусхаи насбшавандаи кӯҳна нест.
 

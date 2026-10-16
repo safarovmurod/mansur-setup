@@ -20,6 +20,7 @@
   "cSpell.language": "en,ru",
   "workbench.colorTheme": "Default Dark+",
   "workbench.iconTheme": "material-icon-theme",
+  "workbench.statusBar.visible": true,
   "workbench.editor.empty.hint": "hidden",
   "workbench.colorCustomizations": {
     "editorError.foreground": "#f8717166",

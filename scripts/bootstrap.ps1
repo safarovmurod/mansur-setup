@@ -1,4 +1,5 @@
-param([string]$Name = '', [switch]$RulesOnly, [switch]$DryRun)
+param([string]$Name = '', [switch]$RulesOnly, [switch]$DryRun,
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$MinimumVersion = '2.1.12')
 # Windows PowerShell 5.1 compatible. Run from the Antigravity PowerShell terminal.
 $ErrorActionPreference = 'Stop'
 # Kept in this single file so the README can bootstrap without downloading helpers.
@@ -67,6 +68,18 @@ function Get-SetupSource {
     Invoke-SetupGit -GitPath $GitPath -Arguments @('-C', $source, 'checkout', '--quiet', '--detach', $Commit) -Label 'Check out setup snapshot' | Out-Null
     return $source
 }
+function Assert-SetupPackage {
+    param([string]$Source, [string]$MinimumVersion)
+    $file = Join-Path $Source 'package.json'
+    if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw 'Downloaded package.json is missing; no setup files changed.' }
+    $package = Get-Content -LiteralPath $file -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($package.name -ne 'mansur-antigravity-setup') { throw 'Unexpected downloaded package identity; no setup files changed.' }
+    if ($package.version -notmatch '^\d+\.\d+\.\d+$') { throw 'Downloaded package has an invalid release version; no setup files changed.' }
+    if ([version]$package.version -lt [version]$MinimumVersion) {
+        throw "Downloaded setup $($package.version) is older than required $MinimumVersion. Refusing stale setup; no setup files changed."
+    }
+    return $package
+}
 function Refresh-SetupPath {
     $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
         [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + $script:originalPath
@@ -106,7 +119,7 @@ try {
     Write-Host '[2/4] Checking Git for GitHub package download...'
     if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) { Install-Prerequisite -Id 'Git.Git' }
     if ($DryRun) {
-        Write-Host '[3/4] [DRY-RUN] Would run setup with existing MCP permissions preserved.'
+        Write-Host "[3/4] [DRY-RUN] Would resolve current main, require setup >=$MinimumVersion and run native automation (or rules-only)."
         Write-Host '[4/4] [DRY-RUN] Would run Doctor. No prerequisites or setup files changed.'
         exit 0
     }
@@ -134,11 +147,10 @@ try {
     $entry = Join-Path $source 'bin\mansur-setup.js'
     $packagePath = Join-Path $source 'package.json'
     if (-not (Test-Path -LiteralPath $entry -PathType Leaf) -or -not (Test-Path -LiteralPath $packagePath -PathType Leaf)) { throw 'Downloaded archive is incomplete; no setup files changed.' }
-    $package = Get-Content -LiteralPath $packagePath -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($package.name -ne 'mansur-antigravity-setup') { throw 'Unexpected downloaded package identity; no setup files changed.' }
+    $package = Assert-SetupPackage -Source $source -MinimumVersion $MinimumVersion
     Write-Host ('  Package ' + $package.version + '; source ' + $commit)
     $setupArgs = @($entry, 'install')
-    if ($RulesOnly) { $setupArgs += '--rules-only' } else { $setupArgs += '--skip-permissions' }
+    if ($RulesOnly) { $setupArgs += '--rules-only' } else { $setupArgs += '--auto-approve' }
     if ($Name) { $setupArgs += @('--name', $Name) }
     $stage = 'Install profile'
     & $node.Source @setupArgs

@@ -4,7 +4,7 @@
 
 | Қисм | Шумора | Source |
 |---|---:|---|
-| Editor settings | 233 key | [config/settings.json](../config/settings.json) |
+| Editor settings | 234 key | [config/settings.json](../config/settings.json) |
 | Keybindings | 15 binding | [config/keybindings.json](../config/keybindings.json) |
 | Global GEMINI.md | 1 | [rules/GEMINI.template.md](../rules/GEMINI.template.md) |
 | Contextual rules | 2 | [rules/](../rules/) |

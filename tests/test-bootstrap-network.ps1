@@ -45,6 +45,8 @@ function powershell.exe {
     $networkTest.launches++
     $fileIndex = [Array]::IndexOf($args, '-File')
     Assert-True ($fileIndex -ge 0 -and (Test-Path -LiteralPath $args[$fileIndex + 1])) 'Launcher did not pass an existing script'
+    $minimumIndex = [Array]::IndexOf($args, '-MinimumVersion')
+    Assert-True ($minimumIndex -ge 0 -and $args[$minimumIndex + 1] -eq '2.1.12') 'README must reject setup versions older than 2.1.12'
     $networkTest.launchedFile = $args[$fileIndex + 1]
     $global:LASTEXITCODE = $networkTest.launchStatus
 }
@@ -102,6 +104,24 @@ $global:LASTEXITCODE = 0
 '@
     $download = Join-Path $testRoot 'download with spaces.zip'
     $networkTest.passed = 0
+    $versionSource = Join-Path $testRoot 'version check'; New-Item -ItemType Directory $versionSource | Out-Null
+    Test-Case 'minimum version rejects stale setup before any installation' {
+        Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"mansur-antigravity-setup","version":"2.1.11"}'
+        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.12' } '*older than required 2.1.12*'
+    }
+    Test-Case 'current and newer releases satisfy the minimum version' {
+        foreach ($version in @('2.1.12','2.1.13','2.2.0')) {
+            Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value ('{"name":"mansur-antigravity-setup","version":"' + $version + '"}')
+            $verified = Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.12'
+            Assert-True ($verified.version -eq $version) 'Valid current release was rejected'
+        }
+    }
+    Test-Case 'wrong identities and non-release versions are rejected' {
+        Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"unexpected","version":"99.0.0"}'
+        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.12' } '*Unexpected downloaded package identity*'
+        Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"mansur-antigravity-setup","version":"2.1.12-old"}'
+        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.12' } '*invalid release version*'
+    }
     Test-Case 'IWR timeout retries and replaces the partial file' {
         $networkTest.requestMode = 'retry'
         Invoke-SetupDownload -Uri 'https://example.invalid/current.zip' -OutFile $download

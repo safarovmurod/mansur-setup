@@ -15,6 +15,7 @@ function parseArgs(args) {
     skipAgentBrowser: false,
     skipFont: false,
     skipPermissions: false,
+    autoApprove: false,
     rulesOnly: false,
     home: null,
     backupDir: null,
@@ -39,6 +40,8 @@ function parseArgs(args) {
       result.skipFont = true;
     } else if (arg === '--skip-permissions') {
       result.skipPermissions = true;
+    } else if (arg === '--auto-approve') {
+      result.autoApprove = true;
     } else if (arg === '--rules-only') {
       result.rulesOnly = true;
     } else if (arg === '--home') {
@@ -80,6 +83,9 @@ COMMANDS:
   install             Apply the complete Antigravity setup (default)
   permissions         Apply global MCP auto-allow with Antigravity closed
   permissions-restore [dir] Restore only MCP preferences from a private backup
+  automation          Enable native terminal/artifact Always Proceed and MCP Allow;
+                      wait in the background for a normal IDE shutdown when needed
+  automation-restore [dir] Restore only automation preferences from a private backup
   doctor              Diagnose prerequisites, paths, and settings health
   backup              Create a manual backup of current settings & rules
   restore [dir]       Restore previous settings from backup
@@ -92,6 +98,7 @@ OPTIONS:
   --skip-agent-browser Skip browser CLI/runtime installation
   --skip-font         Skip Windows font installation/registration
   --skip-permissions  Preserve approvals; recommended inside Antigravity terminal
+  --auto-approve      Apply native automation, or queue it until the IDE closes
   --rules-only        Install/update current rules and guides without settings, MCP or extensions
   --home <path>       Explicit user home for isolated rules-only operations
   --help, -h          Show help message
@@ -108,6 +115,7 @@ EXAMPLES:
 function main() {
   const args = process.argv.slice(2);
   const opts = parseArgs(args);
+  if (opts.autoApprove && (opts.skipPermissions || opts.rulesOnly)) throw new Error('--auto-approve cannot be combined with --skip-permissions or --rules-only');
   if (opts.home && !(opts.command === 'install' && opts.rulesOnly)) {
     throw new Error('--home is supported only with install --rules-only');
   }
@@ -127,6 +135,23 @@ function main() {
   const envPaths = getEnvironmentPaths();
 
   switch (opts.command) {
+    case 'automation': {
+      try {
+        const result = require('../lib/agent-automation').queueAutomation(envPaths, { dryRun: opts.dryRun });
+        console.log(JSON.stringify(result, null, 2));
+        process.exit(result.applied || result.queued || result.dryRun ? 0 : 1);
+      } catch (error) { console.error(error.message); process.exit(1); }
+      break;
+    }
+    case 'automation-restore': {
+      try {
+        if (opts.dryRun) throw new Error('automation-restore requires a closed IDE and an explicit backup directory');
+        const result = require('../lib/agent-automation').restoreAutomation(envPaths, opts.backupDir);
+        console.log(JSON.stringify(result, null, 2));
+        process.exit(result.applied ? 0 : 1);
+      } catch (error) { console.error(error.message); process.exit(1); }
+      break;
+    }
     case 'permissions-restore': {
       try {
         if (opts.dryRun) throw new Error('Use permissions --dry-run for preview; restore requires an explicit backup directory');
@@ -195,6 +220,7 @@ function main() {
           skipAgentBrowser: opts.skipAgentBrowser,
           skipFont: opts.skipFont,
           skipPermissions: opts.skipPermissions,
+          autoApprove: opts.autoApprove,
           rulesOnly: opts.rulesOnly,
           home: opts.home,
           log: opts.rulesOnly ? console.error : console.log,

@@ -61,7 +61,7 @@ exit $LASTEXITCODE
         $calls = if (Test-Path $log) { @(Get-Content -LiteralPath $log | ForEach-Object { $_ | ConvertFrom-Json }) } else { @() }
         if ($failure -eq 'none' -or $failure -eq 'doctor') {
             if ($calls.Count -ne 2 -or $calls[0].command -ne 'install' -or $calls[1].command -ne 'doctor' -or $calls[0].source -ne $calls[1].source) { Get-Content (Join-Path $testRoot ('output-' + $passed + '.log')); $calls | ConvertTo-Json -Depth 5; throw 'Install and Doctor did not use the same snapshot' }
-            if ($calls[0].args -notcontains '--skip-permissions') { throw 'Permissions preservation option missing' }
+            if ($calls[0].args -notcontains '--auto-approve') { throw 'Native automation option missing' }
             $namePosition = [Array]::IndexOf($calls[0].args, '--name')
             if ($namePosition -lt 0 -or $calls[0].args[$namePosition + 1] -ne 'povilitel') { throw 'Requested display name was not forwarded to install' }
         } elseif ($failure -eq 'install' -and @($calls).Count -ne 1) { Get-Content (Join-Path $testRoot ('output-' + $passed + '.log')); $calls | ConvertTo-Json -Depth 5; throw 'Doctor ran after failed install' }

@@ -126,7 +126,7 @@ test('Invalid configuration error includes its path without exposing private JSO
 
 test('Repository declares the exact current settings, rules, guides and three local extensions', () => {
   const settings = readJson(path.join(repoRoot, 'config/settings.json'));
-  assert.equal(Object.keys(settings).length, 233);
+  assert.equal(Object.keys(settings).length, 234);
   assert.equal(settings['editor.wordBasedSuggestions'], 'off');
   assert.equal(settings['editor.suggest.showKeywords'], false);
   assert.equal(settings['editor.suggest.showVariables'], true);
@@ -177,7 +177,7 @@ test('Payload discovers a new skill, rule and script without changing installer 
   ]);
 });
 
-test('One isolated full install restores the current snapshot and exercises all three bundled packages', t => {
+test('One isolated full install applies managed settings, keeps personal keys and exercises all three bundled packages', t => {
   const { customRoots, env } = fixture(t);
   put(env.settingsJson, JSON.stringify({ 'user.customSetting': 'KEEP', 'editor.fontSize': 12 }));
   for (const file of [path.join(env.geminiConfigDir, 'mcp_config.json'), path.join(env.geminiDir, 'antigravity/mcp_config.json')]) {
@@ -196,7 +196,7 @@ test('One isolated full install restores the current snapshot and exercises all 
 
   const expected = expectedSettings(env, repoRoot);
   const installed = readJson(env.settingsJson);
-  assert.deepEqual(installed, expected);
+  assert.deepEqual(installed, { ...expected, 'user.customSetting': 'KEEP' });
   const plan = readJson(path.join(env.geminiConfigDir, 'mansur-setup/editor-profile.json'));
   assert.deepEqual(plan.settings, expected);
   assert.equal(plan.locale, 'ru');
@@ -208,7 +208,7 @@ test('One isolated full install restores the current snapshot and exercises all 
     assert.equal(servers.personal.env.API_TOKEN, 'KEEP_PRIVATE_FIXTURE_VALUE');
   }
   assert.equal(readJson(path.join(result.backupInfo.backupDir, 'mcp_config.json')).mcpServers['github-mcp-server'].env.GITHUB_PERSONAL_ACCESS_TOKEN, 'PRIVATE_FIXTURE_VALUE');
-  assert.equal(installed['user.customSetting'], undefined);
+  assert.equal(installed['user.customSetting'], 'KEEP');
   assert.equal(installed['terminal.integrated.profiles.windows']['Git Bash'].path, env.gitBashPath);
   assert.doesNotMatch(JSON.stringify(installed), /\$\{(?:GIT_BASH_PATH|ANTIGRAVITY_WORKBENCH_HTML)\}/);
   assert.equal(fs.readFileSync(path.join(env.geminiDir, 'GEMINI.md'), 'utf8'), fs.readFileSync(path.join(repoRoot, 'rules/GEMINI.template.md'), 'utf8'));

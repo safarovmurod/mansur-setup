@@ -88,7 +88,7 @@ test('Directory junction/link blocks outside writes and unsafe backup traversal'
   assert.deepEqual(fs.readdirSync(outside), []);
 });
 
-test('Full install restores exact settings, preserves MCP credentials and personal skill; backup restores previous settings', t => {
+test('Full install preserves personal settings, command denials, MCP credentials and personal skill; backup restores previous settings', t => {
   const data = fixture(t);
   put(data.env.settingsJson, JSON.stringify({ 'chat.tools.terminal.autoApprove': { rm: false }, 'security.workspace.trust.untrustedFiles': 'prompt', 'personal.text': 'a,}' }));
   put(path.join(data.env.geminiConfigDir, 'mcp_config.json'), JSON.stringify({ customTop: true, mcpServers: { github: { command: 'my-launcher', env: { TOKEN: 'KEEP_LOCAL_VALUE' }, $typeName: 'metadata' }, gsd: { command: 'custom-gsd', disabled: true } } }));
@@ -97,8 +97,9 @@ test('Full install restores exact settings, preserves MCP credentials and person
   assert.equal(result.success, true);
   assert.ok(fs.existsSync(path.join(data.env.extensionsDir, 'mansur.antigravity-stability-helper-1.1.0/maintenance.cjs')));
   const settings = JSON.parse(fs.readFileSync(data.env.settingsJson));
-  assert.deepEqual(settings, expectedSettings(data.env, repoRoot));
-  assert.equal(settings['personal.text'], undefined);
+  const expected = expectedSettings(data.env, repoRoot);
+  assert.deepEqual(settings, { ...expected, 'personal.text': 'a,}', 'chat.tools.terminal.autoApprove': { ...expected['chat.tools.terminal.autoApprove'], rm: false } });
+  assert.equal(settings['personal.text'], 'a,}');
   const mcp = JSON.parse(fs.readFileSync(path.join(data.env.geminiConfigDir, 'mcp_config.json')));
   assert.equal(mcp.customTop, true);
   assert.deepEqual(mcp.mcpServers.github, { command: 'my-launcher', env: { TOKEN: 'KEEP_LOCAL_VALUE' } });
