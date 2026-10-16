@@ -52,6 +52,7 @@
     "Gallery/browser provisioning",
     "Authenticated Antigravity chat and account authorization"
   ],
-  "reproduce": "pwsh -NoProfile -File tests/test-bootstrap-live.ps1 -ExpectedCommit a6725ea1695a6caceaa12b8abebda48bf02ab121",
-  "note": "This records the immutable source commit actually downloaded and tested. A later documentation-only commit may add this report to main."
+  "reproduce": "npm run test:bootstrap:live",
+  "note": "This records the immutable source commit actually downloaded and tested. A later documentation-only commit may add this report to main.",
+  "commandExecuted": "pwsh -NoProfile -File tests/test-bootstrap-live.ps1 -ExpectedCommit a6725ea1695a6caceaa12b8abebda48bf02ab121"
 }
