@@ -1,0 +1,66 @@
+{
+  "name": "ts-mancho",
+  "displayName": "TS MANCHO",
+  "publisher": "mancho",
+  "version": "3.1.2",
+  "description": "Quiet diagnostic presentation, JS/TS typing pulse, pause-based save, and one-click formatting.",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.107.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "tsMancho.formatDocument",
+        "title": "TS MANCHO: Format Document"
+      }
+    ],
+    "configuration": {
+      "title": "TS MANCHO",
+      "properties": {
+        "tsMancho.quietMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Hide diagnostic decorations across the editor with Problems visibility, plus JS/TS unused hints and inline Error Lens messages. Validation, IntelliSense and build checks stay enabled."
+        },
+        "tsMancho.smoothTyping": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable native smooth caret animation, smooth blinking and scrolling."
+        },
+        "tsMancho.typingPulse": {
+          "type": "boolean",
+          "default": true,
+          "description": "Briefly highlight the latest newly typed character without changing source text."
+        },
+        "tsMancho.autoSaveAfterTyping": {
+          "type": "boolean",
+          "default": true,
+          "description": "Save dirty local files after typing pauses when native afterDelay Auto Save is not already active."
+        },
+        "tsMancho.autoSaveDelayMs": {
+          "type": "integer",
+          "minimum": 300,
+          "maximum": 10000,
+          "default": 1000,
+          "description": "Delay in milliseconds for the extension's pause-based save. Native files.autoSaveDelay takes precedence when native afterDelay mode is enabled."
+        },
+        "tsMancho.showFormatButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a Format button in the status bar; use the editor's configured formatter."
+        }
+      }
+    }
+  }
+}
