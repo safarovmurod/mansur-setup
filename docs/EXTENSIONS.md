@@ -34,7 +34,7 @@ node bin/mansur-setup.js install --auto-approve --extension-profile lite
 | Jelly Cursor (ихтиёрӣ) | `iranon.jelly-cursor` | 0.0.8 preferred | Ороиши курсор; барои React/TypeScript лозим нест, худкор насб намешавад. |
 | Image preview | `kisstkondoros.vscode-gutter-preview` | 0.32.2 | Preview-и расмро дар gutter ва ҳангоми hover нишон медиҳад. |
 | TS MANCHO | `mancho.ts-mancho` | 3.1.2 | Хатҳои сурх/зард ва unused hints пинҳон; JS/TS validation фаъол. Typing Pulse, Auto Save ва Format. |
-| Mansur Antigravity Stability | `mansur.antigravity-stability-helper` | 1.2.0 | Настройкаҳоро дар profile-и фаъол татбиқ/санҷида мекунад ва ду ислоҳи extension-ҳоро нигоҳ медорад. |
+| Mansur Antigravity Stability | `mansur.antigravity-stability-helper` | 1.2.1 | Настройкаҳоро дар profile-и фаъол татбиқ/санҷида мекунад ва ду ислоҳи extension-ҳоро нигоҳ медорад. |
 | Mansur GitHub Panel | `mansur.mansur-github-panel` | 1.2.1 | Панели GitHub барои дидани branch, сохтан, гузаштан ва ҳазфи branch медиҳад. |
 | Russian Language Pack for Visual Studio Code | `ms-ceintl.vscode-language-pack-ru` | 1.106.0 | Интерфейси editor-ро ба русӣ мегузорад. |
 | SQL Server (mssql) | `ms-mssql.mssql` | 1.46.0 | Ба SQL Server пайваст мешавад ва query/schema-ро идора мекунад. |
@@ -45,7 +45,7 @@ node bin/mansur-setup.js install --auto-approve --extension-profile lite
 | Error Lens | `usernamehw.errorlens` | 3.29.0 | Хато ва warning-ҳоро бевосита назди сатри код нишон медиҳад. |
 | Import Cost | `wix.vscode-import-cost` | 3.3.0 | Андозаи package-и import/require-шударо назди код нишон медиҳад. |
 
-TS MANCHO 3.1.2 ва Stability 1.2.0 аз VSIX-и repo насб мешаванд. GitHub Panel 1.2.1 аз source-и repo дар вақти install ба VSIX package ва бо CLI сабт мешавад. Танзимоти extension-ҳо дар [config/settings.json](../config/settings.json) ҳастанд. Gallery extension аз Antigravity CLI гирифта мешавад; account/login-и шахсӣ аз repo намеояд.
+TS MANCHO 3.1.2 ва Stability 1.2.1 аз VSIX-и repo насб мешаванд. GitHub Panel 1.2.1 аз source-и repo дар вақти install ба VSIX package ва бо CLI сабт мешавад. Танзимоти extension-ҳо дар [config/settings.json](../config/settings.json) ҳастанд. Gallery extension аз Antigravity CLI гирифта мешавад; account/login-и шахсӣ аз repo намеояд.
 
 Дар helper-и насби алоҳида танҳо Jelly Cursor compatible-version fallback дорад: версияи воқеии сабтшуда аз CLI хонда ва дар Doctor нишон дода мешавад. Дигар extension-ҳо pin-и snapshot-ро нигоҳ медоранд. Fallback VSIX аз Microsoft Marketplace меояд; identity/version/manifest checksum ва registration санҷида мешаванд.
 

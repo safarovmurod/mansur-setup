@@ -159,7 +159,12 @@ async function inspectProjectConflicts(vscode, desired) {
         ];
         let winning;
         for (const [field, scope] of levels) if (inspected?.[field] !== undefined) winning = { field, scope, value: inspected[field] };
-        const location = sources.find(item => item.scope === winning?.scope && (!item.folder || item.folder === context.folder));
+        // The editor may expose the single folder's settings through both
+        // workspace and workspace-folder inspect fields. Both refer to the
+        // same .vscode/settings.json when no .code-workspace file is open.
+        const location = sources.find(item => (item.scope === winning?.scope
+          || (!workspace.workspaceFile && folders.length === 1 && item.scope === 'workspace' && winning?.scope === 'workspace-folder'))
+          && (!item.folder || item.folder === context.folder));
         const declarations = location?.settings || (winning?.scope === 'user-language' ? userSelectors : undefined);
         const declared = winning?.field.includes('Language') && languageId && declarations ? Object.keys(declarations).filter(selector =>
           selectorLanguages(selector).includes(languageId) && same(declarations[selector]?.[key], winning.value)) : [];

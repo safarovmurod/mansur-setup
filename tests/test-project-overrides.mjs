@@ -35,7 +35,7 @@ function fixture(t, options = {}) {
         const resource = scope?.uri || scope;
         const folder = folders.find(item => resource?.fsPath?.startsWith(item.uri.fsPath)) || (!options.multiRoot ? folders[0] : undefined);
         const workspaceSettings = options.multiRoot ? workspaceValues : folder?.settings || {};
-        const folderSettings = options.multiRoot ? folder?.settings || {} : {};
+        const folderSettings = options.multiRoot || options.singleFolderInspectFields ? folder?.settings || {} : {};
         const language = scope?.languageId;
         const languageValue = (settings, key) => {
           let value;
@@ -93,6 +93,20 @@ test('Single folder JSONC settings report their actual .vscode/settings.json sou
   assert.ok(result.conflicts.some(item => item.key === 'editor.inlineSuggest.enabled' && item.languageId === 'python'
     && item.scope === 'workspace' && item.source === f.folders[0].file && item.selector === '[python]' && item.actual === true && item.active));
   assert.deepEqual(result.readErrors, []);
+  f.assertUnchanged();
+});
+
+test('Single-folder API workspaceFolderLanguageValue resolves to its actual settings file', async t => {
+  const f = fixture(t, { singleFolderInspectFields: true,
+    folders: [{ '[python]': { 'editor.inlineSuggest.enabled': true } }], languages: ['python'] });
+  const result = await inspectProjectConflicts(f.vscode, desired);
+  const active = result.conflicts.find(item => item.key === 'editor.inlineSuggest.enabled'
+    && item.languageId === 'python' && item.active);
+  assert.ok(active);
+  assert.equal(active.scope, 'workspace-folder');
+  assert.equal(active.source, f.folders[0].file);
+  assert.equal(active.selector, '[python]');
+  assert.equal(result.conflicts.some(item => item.active && item.source === null), false);
   f.assertUnchanged();
 });
 

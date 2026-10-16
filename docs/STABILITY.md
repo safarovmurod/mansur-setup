@@ -1,6 +1,6 @@
 # Antigravity stability — Setup 2.2.0
 
-Helper `mansur.antigravity-stability-helper` 1.2.0 дар startup ва баъди тағйири рӯйхати extensions ду catalog entry-ро месанҷад:
+Helper `mansur.antigravity-stability-helper` 1.2.1 дар startup ва баъди тағйири рӯйхати extensions ду catalog entry-ро месанҷад:
 
 | Extension | Версия | Сабаби ислоҳи маҳаллӣ |
 |---|---|---|
@@ -25,13 +25,13 @@ Original ва patched SHA-256 дар `extensions/mansur-antigravity-stability/ma
 
 ## Санҷиши read-only-и project
 
-Helper 1.2.0 командаи **Mansur: Inspect Project Setting Conflicts (Read Only)** ва indicator-и Mansur дар status bar дорад. Он registered language-ҳо, забонҳои ҳуҷҷатҳои кушода, selector-ҳои user/workspace/folder, combined selector ва ҳамаи folder-ҳои workspace-ро месанҷад. Report key, expected/effective value, language, scope ва роҳи маълуми source-ро медиҳад. User/policy source метавонад танҳо аз API маълум бошад ва роҳи файл надошта бошад. Ҳам override-и фаъол ва ҳам declaration-и ҳоло сояафканшуда нишон дода мешавад; read/parse failure ҳамчун `needs-attention` мебарояд.
+Helper 1.2.1 командаи **Mansur: Inspect Project Setting Conflicts (Read Only)** ва indicator-и Mansur дар status bar дорад. Он registered language-ҳо, забонҳои ҳуҷҷатҳои кушода, selector-ҳои user/workspace/folder, combined selector ва ҳамаи folder-ҳои workspace-ро месанҷад. Report key, expected/effective value, language, scope ва роҳи маълуми source-ро медиҳад. User/policy source метавонад танҳо аз API маълум бошад ва роҳи файл надошта бошад. Ҳам override-и фаъол ва ҳам declaration-и ҳоло сояафканшуда нишон дода мешавад; read/parse failure ҳамчун `needs-attention` мебарояд.
 
 Inspector `.vscode/settings.json`, `.code-workspace`, source-и application, account ё token-ро тағйир намедиҳад. Project override то ислоҳи явнӣ метавонад effective монад. **Apply and Check Editor Settings** global profile-ро татбиқ мекунад; он иҷозати иваз кардани project settings нест.
 
 ## Барқароркунии worker
 
-Helper 1.2.0 дар startup runtime-и доимии `automation-v2`-ро барои request-и protocol-2-и interrupted/expired бо Node-и сабтшуда мехонад ва resume мекунад. Recovery ҳамон request ID ва scope-ро нигоҳ медорад: completion-only иҷозатҳои chat-ро тағйир намедиҳад. Request-и cancelled, superseded ё worker-и ҳоло зинда аз нав оғоз намешавад. Protocol-и кӯҳна иҷрои setup-и навро талаб мекунад. Windows startup task сохта намешавад ва IDE-и user баста ё kill намешавад; worker то shutdown-и муқаррарӣ интизор мемонад.
+Helper 1.2.1 дар startup runtime-и доимии `automation-v2`-ро барои request-и protocol-2-и interrupted/expired бо Node-и сабтшуда мехонад ва resume мекунад. Recovery ҳамон request ID ва scope-ро нигоҳ медорад: completion-only иҷозатҳои chat-ро тағйир намедиҳад. Request-и cancelled, superseded ё worker-и ҳоло зинда аз нав оғоз намешавад. Protocol-и кӯҳна иҷрои setup-и навро талаб мекунад. Windows startup task сохта намешавад ва IDE-и user баста ё kill намешавад; worker то shutdown-и муқаррарӣ интизор мемонад.
 
 `npm.cmd run status` натиҷаи starting/waiting/applied/failed/cancelled/interrupted/expired ё drift-и storage-ро медиҳад; `npm.cmd run resume` recovery-и дастӣ аст. Runtime баъди тоза шудани download-и муваққатӣ боқӣ мемонад. Роҳ ва commands-и мустақил дар [reliability guide](RELIABILITY-2.2.0.md#status-and-recovery) ҳастанд. Rollback-и умумӣ native baseline ва файлҳоро якҷоя бармегардонад ва worker-ҳои интизорро бекор мекунад; [маҳдудиятҳои restore](RELIABILITY-2.2.0.md#one-coordinated-restore)-ро бин.
 

@@ -71,7 +71,7 @@ test('Full install accepts empty optional profile JSON and backs up the exact or
   assert.ok(readJson(path.join(env.geminiConfigDir, 'mcp_config.json')).mcpServers.gsd);
   assert.ok(readJson(path.join(env.geminiDir, 'antigravity/mcp_config.json')).mcpServers.gsd);
   assert.ok(readJson(path.join(env.extensionsDir, 'extensions.json')).some(item => item.identifier?.id === 'mancho.ts-mancho'));
-  assert.ok(fs.existsSync(path.join(env.extensionsDir, 'mansur.antigravity-stability-helper-1.2.0/maintenance.cjs')));
+  assert.ok(fs.existsSync(path.join(env.extensionsDir, 'mansur.antigravity-stability-helper-1.2.1/maintenance.cjs')));
   assert.ok(fs.existsSync(path.join(env.extensionsDir, 'mansur.mansur-github-panel-1.2.1/extension.js')));
   assert.equal(runDoctor({ customRoots, log() {} }).checks.find(item => item.name === 'Managed editor settings').status, 'pass');
   restoreBackup(result.backupInfo.backupDir, env);
@@ -257,7 +257,7 @@ test('One isolated full install applies managed settings, keeps personal keys an
   const staleBackups = fs.readdirSync(env.backupsDir).filter(name => name.startsWith('ts-mancho-stale-'));
   assert.ok(staleBackups.some(name => fs.existsSync(path.join(env.backupsDir, name, 'mancho.ts-mancho-1.1.0', 'old.txt'))));
   for (const [directory, id, version, required] of [
-    ['mansur-antigravity-stability', 'mansur.antigravity-stability-helper', '1.2.0', 'maintenance.cjs'],
+    ['mansur-antigravity-stability', 'mansur.antigravity-stability-helper', '1.2.1', 'maintenance.cjs'],
     ['mansur-github-panel', 'mansur.mansur-github-panel', '1.2.1', 'extension.js'],
   ]) {
     const target = path.join(env.extensionsDir, id + '-' + version, required);

@@ -48,7 +48,7 @@ node (Join-Path $runtime 'setup-status.js') --resume (Join-Path $runtime 'reques
 
 Status distinguishes starting/waiting, applied, failed, cancelled, interrupted/expired and stored-preference drift. It checks the worker PID, boot identity, heartbeat and native readback. `applied` means stored preferences match; live UI/chat behavior is separately unverified.
 
-Helper 1.2.0 attempts recovery on IDE startup for interrupted/expired protocol-2 requests. It launches the persistent runtime with the saved Node executable and resumes the original request ID and scope. Completion-only recovery cannot expand into chat permissions. Cancellation, a newer request and an already live worker take precedence. Unsupported old request formats require rerunning ordinary setup. No Windows startup task is registered; user IDE processes are not killed.
+Helper 1.2.1 attempts recovery on IDE startup for interrupted/expired protocol-2 requests. It launches the persistent runtime with the saved Node executable and resumes the original request ID and scope. Completion-only recovery cannot expand into chat permissions. Cancellation, a newer request and an already live worker take precedence. Unsupported old request formats require rerunning ordinary setup. No Windows startup task is registered; user IDE processes are not killed.
 
 ## Project conflicts
 
@@ -74,3 +74,5 @@ For fresh download, use the ordinary README block and add `-ExtensionProfile lit
 The workflow verifies the official installer checksum before execution and `main.js` before IDE launch. It runs the production isolated installer, official native codec/compatibility/preflight tests, real IDE extension-host settings and TypeScript completion checks, a real-process waiting/shutdown/application cycle, reopening, and a project-conflict fixture. Success/failure reports and diagnostics are retained as the `native-windows-smoke` Actions artifact.
 
 Results separate native storage/effective editor API checks from authenticated chat or model-generated suggestions. The test does not log in as the user. Linux unit/orchestration tests and offline SQLite results do not establish a passing Windows workflow; use the actual Actions run and artifact for that claim.
+
+The IDE harness loads the production `profile.cjs` module directly. Packaged helper activation and startup recovery have separate unit/build coverage; this smoke does not establish their real IDE lifecycle.

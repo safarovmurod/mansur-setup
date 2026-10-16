@@ -50,7 +50,7 @@ async function checkSettings(context, phase) {
     assert.ok(conflict, 'A real Python workspace override is detected');
     assert.equal(conflict.actual, true);
     assert.ok(String(conflict.source).replace(/\\/g, '/').endsWith('/.vscode/settings.json'),
-      'Conflict identifies the actual workspace settings file');
+      'Conflict identifies the actual workspace settings file: ' + JSON.stringify({ conflict, readErrors: conflictReport.readErrors }));
     assert.equal(vscode.workspace.getConfiguration('editor', { uri: folder, languageId: 'python' }).get('inlineSuggest.enabled'), true);
     // This is a disposable fixture owned by this test, never a user's project.
     await vscode.workspace.getConfiguration('editor', { uri: folder, languageId: 'python' })
