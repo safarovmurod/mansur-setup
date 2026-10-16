@@ -86,16 +86,18 @@ test('Official-build SQLite write/readback, repeat and scoped restore preserve p
   assert.deepEqual(result.storedPolicies, POLICIES);
   assert.deepEqual(result.storedTabPolicies, TAB_POLICIES);
   assert.equal(update(f.env, options).changed, false);
-  const db = new DatabaseSync(f.dbFile); t.after(() => db.close());
-  assert.equal(db.prepare('SELECT value FROM ItemTable WHERE key=?').get('private-account-row').value, 'PRIVATE-RETAIN');
-  const request = path.join(f.env.geminiConfigDir, 'mansur-setup/automation/request.json');
-  fs.mkdirSync(path.dirname(request), { recursive: true });
-  fs.writeFileSync(request, JSON.stringify({ env: f.env, includeMcp: true }));
-  assert.equal(restoreAutomation(f.env, result.backup, options).applied, true);
-  assert.equal(JSON.parse(fs.readFileSync(request)).cancelled, true);
-  assert.equal(db.prepare('SELECT value FROM ItemTable WHERE key=?').get(TOPIC_KEY), undefined);
-  assert.equal(db.prepare('SELECT value FROM ItemTable WHERE key=?').get(TAB_TOPIC_KEY), undefined);
-  assert.equal(db.prepare('SELECT value FROM ItemTable WHERE key=?').get('private-account-row').value, 'PRIVATE-RETAIN');
+  const db = new DatabaseSync(f.dbFile);
+  try {
+    assert.equal(db.prepare('SELECT value FROM ItemTable WHERE key=?').get('private-account-row').value, 'PRIVATE-RETAIN');
+    const request = path.join(f.env.geminiConfigDir, 'mansur-setup/automation/request.json');
+    fs.mkdirSync(path.dirname(request), { recursive: true });
+    fs.writeFileSync(request, JSON.stringify({ env: f.env, includeMcp: true }));
+    assert.equal(restoreAutomation(f.env, result.backup, options).applied, true);
+    assert.equal(JSON.parse(fs.readFileSync(request)).cancelled, true);
+    assert.equal(db.prepare('SELECT value FROM ItemTable WHERE key=?').get(TOPIC_KEY), undefined);
+    assert.equal(db.prepare('SELECT value FROM ItemTable WHERE key=?').get(TAB_TOPIC_KEY), undefined);
+    assert.equal(db.prepare('SELECT value FROM ItemTable WHERE key=?').get('private-account-row').value, 'PRIVATE-RETAIN');
+  } finally { db.close(); }
 });
 
 test('Completion-only apply and restore preserve exact chat bytes and later unrelated Tab preferences', t => {
