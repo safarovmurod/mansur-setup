@@ -12,6 +12,8 @@
 
 Antigravity IDE-ро кушо → **Terminal → New Terminal → PowerShell**. Ҳамин командаро пурра гузор:
 
+**Ҳамин команда ҳам барои насби нав ва ҳам барои update аст.** Он native **AI Tab/next-edit** ва **матни шаффофи AI (ghost text)**-ро автоматӣ хомӯш мекунад. Подсказкаҳои одии import, variable ва роҳҳои файл мемонанд; чати agent фаъол мемонад. Барои ин қисми setup командаи иловагӣ лозим нест. Пас аз анҷом корро Save кун, ҳамаи window-ҳои Antigravity-ро одӣ пурра пӯш, натиҷаи native-ро аз `statusFile` то `applied` санҷ ва IDE-ро аз нав кушо.
+
 ```powershell
 & {
   $ErrorActionPreference = 'Stop'
@@ -63,7 +65,12 @@ Jelly Cursor танҳо ороиши курсор аст ва барои React/T
 
 **Подсказкаҳо:** Setup 2.1.13 ҳам native **AI Tab/next-edit** ва ҳам **inline/ghost text-и шаффоф**-ро хомӯш мекунад. Барои native Tab танҳо `editor.inlineSuggest.enabled: false` кофӣ набуд: он preference-и ҷудогонаи дохили database дорад. Акнун `tabEnabled = OFF (1)` ва `tabToJump = DISABLED (2)` ҳам татбиқ мешаванд. Номҳои переменнаяҳои худат, import-и JS/TS/TSX, номи component ва роҳи файл/папка мемонанд. Word-based, keyword, snippet, Emmet, parameter hints ва категорияҳои зиёдатии completion хомӯшанд. Барои auto-import-и function/class/type категорияҳои онҳо фаъоланд; VS Code настройкаи алоҳидаи «фақат imported function/class, на local function/class» надорад. Helper switch-ҳои autocomplete-и Antigravity/Codeium-ро танҳо аз schema-и extension-и насбшуда ёфта хомӯш мекунад.
 
-Барои хомӯш кардани ҳар ду намуди AI-подсказка дар checkout-и ҳамин project, бе тағйири иҷозатҳои чати agent:
+<details>
+<summary>Ихтиёрӣ: танҳо AI-подсказкаҳоро хомӯш кардан, бе насб ё update-и пурра</summary>
+
+Насб ва update бо командаи асосии боло ҳар ду намуди AI-подсказкаро аллакай автоматӣ хомӯш мекунанд. Командаҳои ин қисм барои татбиқи ҷудогонаи ҳамин танзимҳо ҳастанд.
+
+Дар checkout-и ҳамин project, бе тағйири иҷозатҳои чати agent:
 
 ```powershell
 node bin/mansur-setup.js quiet-completion
@@ -107,6 +114,8 @@ node bin/mansur-setup.js quiet-completion
   }
 }
 ```
+
+</details>
 
 Хатҳои сурхи зачёркнутый метавонанд ҳам preview-и next-edit ва ҳам diff-и тағйироти дар chat дархостшуда бошанд. Аз як скрин сарчашмаи дақиқро тасдиқ карда намешавад. Хомӯш кардани AI-подсказкаҳо diff-и тағйироте, ки худат аз chat талаб мекунӣ, намепӯшонад; agent-и chat кор мекунад.
 
