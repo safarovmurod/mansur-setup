@@ -31,13 +31,17 @@ try {
     $package = Assert-SetupPackage -Source $source -MinimumVersion $expectedVersion
     if ($package.version -ne $expectedVersion) { throw "Downloaded $($package.version), expected the published version $expectedVersion" }
     if ((Get-FileHash -LiteralPath $bootstrap).Hash -ne (Get-FileHash -LiteralPath (Join-Path $source 'scripts/bootstrap.ps1')).Hash) { throw 'Raw bootstrap and commit ZIP do not contain the same script' }
-    foreach ($required in @('lib/agent-automation.js', 'lib/quiet-completion.js', 'docs/AGENT-AUTOMATION.md', 'rules/GEMINI.template.md', 'config/settings.json')) {
+    foreach ($required in @('lib/agent-automation.js', 'lib/quiet-completion.js', 'lib/setup-status.js', 'lib/rollback.js', 'lib/native-compatibility.js', 'config/native-compatibility.json', 'config/extension-profiles.json', 'docs/RELIABILITY-2.2.0.md', 'rules/GEMINI.template.md', 'config/settings.json')) {
         if (-not (Test-Path -LiteralPath (Join-Path $source $required) -PathType Leaf)) { throw "New release file is missing: $required" }
     }
     $isolatedProfile = Join-Path $directory 'User with spaces'
     $entry = Join-Path $source 'bin/mansur-setup.js'
     $quietArguments = @(Get-SetupArguments -Entry $entry -QuietCompletion)
     if ($quietArguments.Count -ne 2 -or $quietArguments[0] -cne $entry -or $quietArguments[1] -cne 'quiet-completion') { throw 'Downloaded quiet launcher must invoke only the completion command' }
+    $normalArguments = @(Get-SetupArguments -Entry $entry)
+    if ($normalArguments[1] -cne 'install' -or '--auto-approve' -notin $normalArguments) { throw 'Ordinary download must include native automation and completion disable' }
+    $liteArguments = @(Get-SetupArguments -Entry $entry -ExtensionProfile lite)
+    if ('--extension-profile' -notin $liteArguments -or 'lite' -notin $liteArguments) { throw 'Downloaded bootstrap lacks optional lite selection' }
     & $node $entry install --rules-only --home $isolatedProfile
     if ($LASTEXITCODE -ne 0) { throw 'Downloaded rules installer failed' }
     $original = Join-Path $source 'rules/GEMINI.template.md'
@@ -49,12 +53,28 @@ const source = process.argv[1], home = process.argv[2];
 const { runInstaller } = require(path.join(source, 'lib/installer'));
 const { getEnvironmentPaths } = require(path.join(source, 'lib/paths'));
 const { planPayload, statePath, digest } = require(path.join(source, 'lib/owned-files'));
+const { selectExtensions } = require(path.join(source, 'lib/extension-profiles'));
+const catalog = JSON.parse(fs.readFileSync(path.join(source, 'config/extensions.json')));
+assert.equal(selectExtensions(catalog, 'full').length, catalog.length);
+assert.ok(selectExtensions(catalog, 'lite').length < catalog.length);
 const customRoots = { userProfile: home, gitBashPath: process.execPath };
 for (let i = 0; i < 2; i++) {
   const result = runInstaller({ customRoots, skipExtensions: true, skipAgentBrowser: true, skipPermissions: true, log() {} });
   if (!result.success) throw new Error(result.failures.join('; '));
+  if (i === 0) {
+    const firstEnv = getEnvironmentPaths(customRoots);
+    const personal = JSON.parse(fs.readFileSync(firstEnv.settingsJson));
+    personal['editor.fontSize'] = 37;
+    personal['editor.inlineSuggest.enabled'] = true;
+    fs.writeFileSync(firstEnv.settingsJson, JSON.stringify(personal));
+  }
 }
 const env = getEnvironmentPaths(customRoots), plan = planPayload(env, source, 'Шеф');
+const settingsAfterUpdate = JSON.parse(fs.readFileSync(env.settingsJson));
+const sourceSettings = JSON.parse(fs.readFileSync(path.join(source, 'config/settings.json')));
+assert.equal(settingsAfterUpdate['editor.fontSize'], sourceSettings['editor.fontSize'], 'Update deliberately reapplies repository settings');
+assert.equal(settingsAfterUpdate['editor.inlineSuggest.enabled'], false);
+assert.equal(JSON.parse(fs.readFileSync(path.join(env.geminiConfigDir, 'mansur-setup/install-options.json'))).extensionProfile, 'full');
 assert.equal(plan.writes.length, 0, 'Downloaded payload must be complete and repeatable');
 assert.equal(plan.removals.length, 0);
 const registry = JSON.parse(fs.readFileSync(statePath(env)));
@@ -134,7 +154,19 @@ if (nativeSource) {
   const repeat = applyQuietCompletion(quietEnv, { queue });
   assert.equal(repeat.success, true); assert.equal(repeat.editor.changed, false); assert.equal(repeat.native.changed, false);
   assert.deepEqual(fs.readFileSync(quietEnv.settingsJson), savedSettings); assert.deepEqual(fs.readFileSync(profileFile), savedProfile);
-  console.log('PASS: downloaded completion-only command disables native AI Tab/next-edit and ghost text; IntelliSense, language preferences and exact chat/account bytes retained; repeat is stable.');
+  const { getSetupStatus } = require(path.join(source, 'lib/setup-status'));
+  assert.equal(getSetupStatus(quietEnv).state, 'applied');
+  const { restoreSetup } = require(path.join(source, 'lib/rollback'));
+  const restored = restoreSetup(first.editor.backup, quietEnv, { isRunning: () => false });
+  assert.equal(restored.success, true); assert.equal(restored.complete, true);
+  assert.deepEqual(JSON.parse(fs.readFileSync(quietEnv.settingsJson)), beforeSettings);
+  const restoredDb = new DatabaseSync(dbFile, { readOnly: true });
+  try {
+    assert.equal(restoredDb.prepare('SELECT value FROM ItemTable WHERE key=?').get(TOPIC_KEY).value, agentBefore);
+    assert.equal(restoredDb.prepare('SELECT value FROM ItemTable WHERE key=?').get('private-account-row').value, 'PRIVATE-ACCOUNT-RETAIN');
+  } finally { restoredDb.close(); }
+  assert.equal(getSetupStatus(quietEnv).state, 'cancelled');
+  console.log('PASS: downloaded quiet command, status and coordinated rollback preserve IntelliSense, personal language values and exact chat/account bytes; native AI Tab and ghost text disable and repeat are verified.');
 } else {
   console.log('SKIP: downloaded native quiet-completion integration needs MANSUR_ANTIGRAVITY_MAIN from the audited official 2.5.5 build.');
 }

@@ -17,6 +17,8 @@ function parseArgs(args) {
     skipPermissions: false,
     autoApprove: false,
     rulesOnly: false,
+    extensionProfile: null,
+    json: false,
     home: null,
     backupDir: null,
     help: false,
@@ -44,6 +46,11 @@ function parseArgs(args) {
       result.autoApprove = true;
     } else if (arg === '--rules-only') {
       result.rulesOnly = true;
+    } else if (arg === '--json') {
+      result.json = true;
+    } else if (arg === '--extension-profile') {
+      if (!['full', 'lite'].includes(args[i + 1])) throw new Error('--extension-profile must be full or lite');
+      result.extensionProfile = args[++i];
     } else if (arg === '--home') {
       if (!args[i + 1] || args[i + 1].startsWith('-')) throw new Error('--home needs a path');
       result.home = args[++i];
@@ -89,6 +96,8 @@ COMMANDS:
                       preserve ordinary IntelliSense and existing chat approvals
   automation-restore [dir] Restore only automation preferences from a private backup
   doctor              Diagnose prerequisites, paths, and settings health
+  status              Show whether native settings are waiting, applied or interrupted
+  resume              Resume an interrupted authorized native setup request
   backup              Create a manual backup of current settings & rules
   restore [dir]       Restore previous settings from backup
   help                Show this help message
@@ -102,6 +111,8 @@ OPTIONS:
   --skip-permissions  Preserve approvals; recommended inside Antigravity terminal
   --auto-approve      Apply native automation, or queue it until the IDE closes
   --rules-only        Install/update current rules and guides without settings, MCP or extensions
+  --extension-profile <full|lite> Select extensions to install (default full); existing extensions stay installed
+  --json              Print machine-readable status
   --home <path>       Explicit user home for isolated rules-only operations
   --help, -h          Show help message
   --version, -v       Show package version
@@ -137,6 +148,23 @@ function main() {
   const envPaths = getEnvironmentPaths();
 
   switch (opts.command) {
+    case 'status': {
+      try {
+        const result = require('../lib/setup-status').getSetupStatus(envPaths);
+        if (opts.json) console.log(JSON.stringify(result, null, 2));
+        else console.log(require('../lib/setup-status').formatSetupStatus(result));
+        process.exit(result.state === 'failed' ? 1 : 0);
+      } catch (error) { console.error(error.message); process.exit(1); }
+      break;
+    }
+    case 'resume': {
+      try {
+        const result = require('../lib/setup-status').recoverPending(envPaths, { dryRun: opts.dryRun });
+        console.log(JSON.stringify(result, null, 2));
+        process.exit(result.state === 'invalid' || result.state === 'failed' ? 1 : 0);
+      } catch (error) { console.error(error.message); process.exit(1); }
+      break;
+    }
     case 'quiet-completion': {
       try {
         const result = require('../lib/quiet-completion').applyQuietCompletion(envPaths, { dryRun: opts.dryRun });
@@ -179,7 +207,7 @@ function main() {
       break;
     }
     case 'doctor': {
-      const docRes = runDoctor();
+      const docRes = runDoctor({ ...(opts.extensionProfile ? { extensionProfile: opts.extensionProfile } : {}) });
       process.exit(docRes.ok ? 0 : 1);
       break;
     }
@@ -209,11 +237,10 @@ function main() {
         console.log(`Restoring most recent backup: ${backups[0].name}`);
       }
       try {
-        const rRes = restoreBackup(targetBackup, envPaths, { dryRun: opts.dryRun });
-        console.log(opts.dryRun ? `[DRY-RUN] Would restore backup: ${targetBackup}` : `✓ Backup successfully restored from ${targetBackup}`);
-        console.log(`  ${opts.dryRun ? 'Planned' : 'Restored'} items: ${rRes.restored.join(', ')}`);
-        if (!opts.dryRun) console.log('Please reload Antigravity window (Ctrl+Shift+P -> Reload Window).');
-        process.exit(0);
+        const rRes = require('../lib/rollback').restoreSetup(targetBackup, envPaths, { dryRun: opts.dryRun });
+        console.log(JSON.stringify(rRes, null, 2));
+        if (rRes.success && !opts.dryRun) console.log('Save work and fully reopen Antigravity to load restored settings.');
+        process.exit(rRes.success ? 0 : 1);
       } catch (err) {
         console.error(`Restore failed: ${err.message}`);
         process.exit(1);
@@ -232,6 +259,7 @@ function main() {
           skipPermissions: opts.skipPermissions,
           autoApprove: opts.autoApprove,
           rulesOnly: opts.rulesOnly,
+          extensionProfile: opts.extensionProfile || 'full',
           home: opts.home,
           log: opts.rulesOnly ? console.error : console.log,
         });

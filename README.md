@@ -1,6 +1,6 @@
 # Mansur · Antigravity IDE
 
-Конфиги охирини Antigravity-и шеф барои Windows. **Setup 2.1.13.** Settings, MD, skills, agents, hooks, runtime ва **21 extension** бо як команда барқарор мешаванд. Jelly Cursor дар catalog ҳамчун extension-и ихтиёрӣ мемонад. Версияҳои extension дар ҳамин repo нигоҳ дошта мешаванд: **TS MANCHO 3.1.2**, **Mansur Antigravity Stability 1.1.0** ва **Mansur GitHub Panel 1.2.1** ҳам дохиланд.
+Конфиги охирини Antigravity-и шеф барои Windows. **Setup 2.2.0.** Settings, MD, skills, agents, hooks, runtime ва **21 extension** бо як команда барқарор мешаванд. Jelly Cursor дар catalog ҳамчун extension-и ихтиёрӣ мемонад. Версияҳои extension дар ҳамин repo нигоҳ дошта мешаванд: **TS MANCHO 3.1.2**, **Mansur Antigravity Stability 1.2.0** ва **Mansur GitHub Panel 1.2.1** ҳам дохиланд.
 
 **[Скачать TS MANCHO 3.1.2 (.vsix)](https://github.com/safarovmurod/mansur-setup/raw/main/extensions/ts-mancho/ts-mancho-3.1.2.vsix)** — насб: Extensions → Install from VSIX. Quiet mode хатҳои сурх/зардро дар тамоми editor ва unused hints-ро дар JS/TS пинҳон мекунад; санҷиши TypeScript фаъол мемонад. Сохтани VSIX аз source: `npm run build:ts-mancho`.
 
@@ -11,6 +11,8 @@
 ## Насб ё update бо як команда
 
 Antigravity IDE-ро кушо → **Terminal → New Terminal → PowerShell**. Ҳамин командаро пурра гузор:
+
+**Нав дар 2.2.0:** санҷиши версия ва database пеш аз тағйирот; rollback-и ягонаи файлҳо + native preferences; `status` ва барқароркунии кори нотамом; ташхиси конфликтҳои project барои забонҳо ва multi-root; Windows smoke workflow; интихоби иловагии extension-ҳои `lite`. **`settings.json` дар насб/update ҳамоно аз конфиги ҳамин repo татбиқ мешавад**, аз ҷумла font/theme/formatter — ин рафтори дархосткардаи шеф нигоҳ дошта шуд. [Дастур ва маҳдудиятҳо](docs/RELIABILITY-2.2.0.md).
 
 **Ҳамин команда ҳам барои насби нав ва ҳам барои update аст.** Он native **AI Tab/next-edit** ва **матни шаффофи AI (ghost text)**-ро автоматӣ хомӯш мекунад. Подсказкаҳои одии import, variable ва роҳҳои файл мемонанд; чати agent фаъол мемонад. Барои ин қисми setup командаи иловагӣ лозим нест. Пас аз анҷом корро Save кун, ҳамаи window-ҳои Antigravity-ро одӣ пурра пӯш, натиҷаи native-ро аз `statusFile` то `applied` санҷ ва IDE-ро аз нав кушо.
 
@@ -41,7 +43,7 @@ Antigravity IDE-ро кушо → **Terminal → New Terminal → PowerShell**. 
         Start-Sleep -Seconds (2 * $i)
       }
     }
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -Name "Шеф" -MinimumVersion '2.1.13'
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -Name "Шеф" -MinimumVersion '2.2.0'
     if ($LASTEXITCODE -ne 0) { throw 'Mansur Setup failed; read the error above.' }
   } finally {
     if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Force }
@@ -49,9 +51,20 @@ Antigravity IDE-ро кушо → **Terminal → New Terminal → PowerShell**. 
 }
 ```
 
-Команда bootstrap-и охирини `main`-ро бо cache-busting URL мегирад, commit-и ҷориро як бор муайян мекунад ва install + Doctor-ро аз ҳамон commit иҷро мекунад. Setup 2.1.13 хомӯш кардани native AI Tab/next-edit ва ghost text-ро ҳам дорад. TS MANCHO 3.1.2, роҳҳои ислоҳшудаи agent ва hook-ҳои бо quote ба ҳамин download дохиланд. VSIX-и кӯҳна дар архиви ҷорӣ нест; нусхаи кӯҳнаи npm cache истифода намешавад. Node.js ≥24, npm ≥10 ва Git санҷида мешаванд; агар лозим бошад, bootstrap онҳоро бо `winget` насб мекунад. `-Name "Шеф"` танҳо номи log аст. Дар log бояд **Package 2.1.13** ё версияи навтар барояд. `-MinimumVersion 2.1.13` версияи кӯҳнаро пеш аз install қатъ мекунад; версия ва commit дар log нишон дода мешаванд. MD, rules, skills, agents ва hooks аз ҳамон ZIP кушода насб мешаванд — download-и дастии ҷудогона лозим нест.
+Команда bootstrap-и охирини `main`-ро бо cache-busting URL мегирад, commit-и ҷориро як бор муайян мекунад ва install + Doctor-ро аз ҳамон commit иҷро мекунад. Setup 2.2.0 хомӯш кардани native AI Tab/next-edit ва ghost text-ро ҳам дорад. TS MANCHO 3.1.2, роҳҳои ислоҳшудаи agent ва hook-ҳои бо quote ба ҳамин download дохиланд. VSIX-и кӯҳна дар архиви ҷорӣ нест; нусхаи кӯҳнаи npm cache истифода намешавад. Node.js ≥24, npm ≥10 ва Git санҷида мешаванд; агар лозим бошад, bootstrap онҳоро бо `winget` насб мекунад. `-Name "Шеф"` танҳо номи log аст. Дар log бояд **Package 2.2.0** ё версияи навтар барояд. `-MinimumVersion 2.2.0` версияи кӯҳнаро пеш аз install қатъ мекунад; версия ва commit дар log нишон дода мешаванд. MD, rules, skills, agents ва hooks аз ҳамон ZIP кушода насб мешаванд — download-и дастии ҷудогона лозим нест.
 
-Санҷиши **2.1.13 аз GitHub**: [отчёти download ва quiet-completion](docs/QUIET-COMPLETION-VERIFICATION.json). Ҳамаи **1068 payload file** санҷида шуданд; командаи зеркашишуда native Tab/next-edit ва ghost text-ро дар профили муваққатӣ хомӯш кард ва иҷозатҳои chat-ро байт ба байт нигоҳ дошт. 147 санҷиши асосӣ, 11 native ва 22 bootstrap гузаштанд. UI-и ноутбуки корбар ва live chat-и Windows дар ин санҷиш иҷро нашуданд. [Отчёти пешинаи 2.1.12](docs/PUBLISHED-VERIFICATION.json) ҳамчун таърих мемонад.
+Санҷиши пешинаи **2.1.13 аз GitHub** (таърих): [отчёти download ва quiet-completion](docs/QUIET-COMPLETION-VERIFICATION.json). Ҳамаи **1068 payload file** санҷида шуданд; командаи зеркашишуда native Tab/next-edit ва ghost text-ро дар профили муваққатӣ хомӯш кард ва иҷозатҳои chat-ро байт ба байт нигоҳ дошт. 147 санҷиши асосӣ, 11 native ва 22 bootstrap гузаштанд. UI-и ноутбуки корбар ва live chat-и Windows дар ин санҷиш иҷро нашуданд. [Отчёти пешинаи 2.1.12](docs/PUBLISHED-VERIFICATION.json) ҳамчун таърих мемонад.
+
+**Full ё Lite:** ҳамон командаи боло бо нобаёнӣ профили пурраи пешинаро насб мекунад. Барои 11 extension-и асосӣ ба сатри `powershell.exe ... -File $p` фақат `-ExtensionProfile lite` илова кун. Extension-ҳои мавҷуд нест намешаванд; `settings.json`, хомӯшкунии AI-подсказкаҳо ва автоматикаи чат дар ҳар ду вариант татбиқ мешаванд.
+
+**Ҳолати насб баъди download-и яккомандагӣ:** ин команда runtime-и нигоҳдошташударо мехонад; checkout-и project лозим нест:
+
+```powershell
+$runtime = Join-Path $env:USERPROFILE '.gemini\config\mansur-setup\automation-v2'
+node (Join-Path $runtime 'setup-status.js') --status (Join-Path $runtime 'request.json')
+```
+
+Агар worker баъди restart қатъ шуда бошад, helper 1.2.0 ҳангоми кушодани IDE ҳамон request-ро бо ҳамон scope барқарор мекунад. `waiting` ҳанӯз `applied` нест. Натиҷаи native-и сабтшуда ва рафтори чати воқеӣ ҷудо нишон дода мешаванд. [Status, resume ва rollback-и ягона](docs/RELIABILITY-2.2.0.md).
 
 **Агар интернет суст бошад:** download то 3 кӯшиш мекунад. Bootstrap timeout-и 120 сония, ZIP timeout-и 600 сония дорад. Агар сервери ZIP дастнорас бошад, ҳамон commit бо Git аз `github.com` гирифта мешавад. Барои ислоҳи timeout командаи навро аз ҳамин README пурра нусха гир; TLS ва hash-check хомӯш намешаванд.
 
@@ -61,9 +74,9 @@ Jelly Cursor танҳо ороиши курсор аст ва барои React/T
 
 Пас аз насб **Save кун, ҳамаи window-ҳои Antigravity-ро пурра пӯш ва IDE-ро аз нав кушо**. Барои забони русӣ full restart лозим аст; Reload Window кофӣ нест. Language Pack насб мешавад, `locale: ru` худкор интихоб ва cache-и startup аз translation-файлҳои воқеӣ барқарор мешавад. Қисмҳои махсуси худи Antigravity метавонанд тарҷума надошта бошанд.
 
-**Настройкаҳои extension-и аллакай насбшуда ҳам татбиқ мешаванд.** Helper 1.1.0 plan-и `~/.gemini/config/mansur-setup/editor-profile.json`-ро мехонад ва танзимоти дастгиришавандаро бо API-и editor дар profile-и фаъол менависад: theme/icons, Prettier барои JS/TS/React, Auto Save, font, smooth caret ва typing pulse. Натиҷа дар **Output → Mansur Antigravity Stability** аст. Command-и дастӣ: **Mansur: Apply and Check Editor Settings**. Project override-и мухолиф нишон дода мешавад; settings-и project пинҳонӣ иваз намешавад.
+**Настройкаҳои extension-и аллакай насбшуда ҳам татбиқ мешаванд.** Helper 1.2.0 plan-и `~/.gemini/config/mansur-setup/editor-profile.json`-ро мехонад ва танзимоти дастгиришавандаро бо API-и editor дар profile-и фаъол менависад: theme/icons, Prettier барои JS/TS/React, Auto Save, font, smooth caret ва typing pulse. Натиҷа дар **Output → Mansur Antigravity Stability** аст. Command-и дастӣ: **Mansur: Apply and Check Editor Settings**. Project override-и мухолиф нишон дода мешавад; settings-и project пинҳонӣ иваз намешавад.
 
-**Подсказкаҳо:** Setup 2.1.13 ҳам native **AI Tab/next-edit** ва ҳам **inline/ghost text-и шаффоф**-ро хомӯш мекунад. Барои native Tab танҳо `editor.inlineSuggest.enabled: false` кофӣ набуд: он preference-и ҷудогонаи дохили database дорад. Акнун `tabEnabled = OFF (1)` ва `tabToJump = DISABLED (2)` ҳам татбиқ мешаванд. Номҳои переменнаяҳои худат, import-и JS/TS/TSX, номи component ва роҳи файл/папка мемонанд. Word-based, keyword, snippet, Emmet, parameter hints ва категорияҳои зиёдатии completion хомӯшанд. Барои auto-import-и function/class/type категорияҳои онҳо фаъоланд; VS Code настройкаи алоҳидаи «фақат imported function/class, на local function/class» надорад. Helper switch-ҳои autocomplete-и Antigravity/Codeium-ро танҳо аз schema-и extension-и насбшуда ёфта хомӯш мекунад.
+**Подсказкаҳо:** Setup 2.2.0 ҳам native **AI Tab/next-edit** ва ҳам **inline/ghost text-и шаффоф**-ро хомӯш мекунад. Барои native Tab танҳо `editor.inlineSuggest.enabled: false` кофӣ набуд: он preference-и ҷудогонаи дохили database дорад. Акнун `tabEnabled = OFF (1)` ва `tabToJump = DISABLED (2)` ҳам татбиқ мешаванд. Номҳои переменнаяҳои худат, import-и JS/TS/TSX, номи component ва роҳи файл/папка мемонанд. Word-based, keyword, snippet, Emmet, parameter hints ва категорияҳои зиёдатии completion хомӯшанд. Барои auto-import-и function/class/type категорияҳои онҳо фаъоланд; VS Code настройкаи алоҳидаи «фақат imported function/class, на local function/class» надорад. Helper switch-ҳои autocomplete-и Antigravity/Codeium-ро танҳо аз schema-и extension-и насбшуда ёфта хомӯш мекунад.
 
 <details>
 <summary>Ихтиёрӣ: танҳо AI-подсказкаҳоро хомӯш кардан, бе насб ё update-и пурра</summary>
@@ -107,7 +120,7 @@ node bin/mansur-setup.js quiet-completion
         Start-Sleep -Seconds (2 * $i)
       }
     }
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -Name "Шеф" -MinimumVersion '2.1.13' -QuietCompletion
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -Name "Шеф" -MinimumVersion '2.2.0' -QuietCompletion
     if ($LASTEXITCODE -ne 0) { throw 'Quiet completion setup failed; read the error above.' }
   } finally {
     if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Force }

@@ -1,5 +1,6 @@
 param([string]$Name = '', [switch]$RulesOnly, [switch]$QuietCompletion, [switch]$DryRun,
-    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$MinimumVersion = '2.1.13')
+    [ValidateSet('full','lite')][string]$ExtensionProfile = 'full',
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$MinimumVersion = '2.2.0')
 # Windows PowerShell 5.1 compatible. Run from the Antigravity PowerShell terminal.
 $ErrorActionPreference = 'Stop'
 # Kept in this single file so the README can bootstrap without downloading helpers.
@@ -81,11 +82,14 @@ function Assert-SetupPackage {
     return $package
 }
 function Get-SetupArguments {
-    param([string]$Entry, [switch]$RulesOnly, [switch]$QuietCompletion, [string]$Name = '')
+    param([string]$Entry, [switch]$RulesOnly, [switch]$QuietCompletion, [string]$Name = '',
+        [ValidateSet('full','lite')][string]$ExtensionProfile = 'full')
     if ($RulesOnly -and $QuietCompletion) { throw 'Choose either RulesOnly or QuietCompletion' }
+    if (($RulesOnly -or $QuietCompletion) -and $ExtensionProfile -ne 'full') { throw 'ExtensionProfile is only supported for full setup' }
     if ($QuietCompletion) { return @($Entry, 'quiet-completion') }
     $arguments = @($Entry, 'install')
     if ($RulesOnly) { $arguments += '--rules-only' } else { $arguments += '--auto-approve' }
+    if ($ExtensionProfile -ne 'full') { $arguments += @('--extension-profile', $ExtensionProfile) }
     if ($Name) { $arguments += @('--name', $Name) }
     return $arguments
 }
@@ -159,7 +163,7 @@ try {
     if (-not (Test-Path -LiteralPath $entry -PathType Leaf) -or -not (Test-Path -LiteralPath $packagePath -PathType Leaf)) { throw 'Downloaded archive is incomplete; no setup files changed.' }
     $package = Assert-SetupPackage -Source $source -MinimumVersion $MinimumVersion
     Write-Host ('  Package ' + $package.version + '; source ' + $commit)
-    $setupArgs = Get-SetupArguments -Entry $entry -RulesOnly:$RulesOnly -QuietCompletion:$QuietCompletion -Name $Name
+    $setupArgs = Get-SetupArguments -Entry $entry -RulesOnly:$RulesOnly -QuietCompletion:$QuietCompletion -Name $Name -ExtensionProfile $ExtensionProfile
     $stage = 'Install profile'
     & $node.Source @setupArgs
     if ($LASTEXITCODE -ne 0) { throw "Setup returned exit $LASTEXITCODE; read the failed stage above. Doctor is not reported as passed." }

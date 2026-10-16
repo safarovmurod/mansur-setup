@@ -6,6 +6,36 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const { execFile } = require('node:child_process');
 
+function resumePendingSetup(output, options = {}) {
+  const directory = options.directory || path.join(os.homedir(), '.gemini', 'config', 'mansur-setup', 'automation-v2');
+  const request = path.join(directory, 'request.json'), script = path.join(directory, 'setup-status.js');
+  if (!fs.existsSync(request)) return Promise.resolve({ skipped: 'no pending setup request' });
+  return new Promise(resolve => {
+    function finish(result) { output.appendLine('Pending setup recovery: ' + JSON.stringify(result)); resolve(result); }
+    try {
+      for (let current = request; current !== path.dirname(current); current = path.dirname(current)) {
+        if (fs.existsSync(current) && fs.lstatSync(current).isSymbolicLink()) throw new Error('Linked pending setup path is unsupported');
+      }
+      if (!fs.existsSync(script) || fs.lstatSync(script).isSymbolicLink()) throw new Error('Persistent setup recovery module is missing or linked; rerun the current setup');
+      const job = JSON.parse(fs.readFileSync(request, 'utf8'));
+      let executable = options.nodeExecutable || 'node';
+      if (typeof job.env?.nodeExe === 'string' && path.isAbsolute(job.env.nodeExe) && /(?:^|[\\/])node(?:\.exe)?$/i.test(job.env.nodeExe) && fs.existsSync(job.env.nodeExe)) executable = job.env.nodeExe;
+      else if (process.platform === 'win32') {
+        const installed = path.join(process.env.ProgramFiles || 'C:\\Program Files', 'nodejs', 'node.exe');
+        if (fs.existsSync(installed)) executable = installed;
+      }
+      (options.execFile || execFile)(executable, [script, '--resume', request], { cwd: directory, encoding: 'utf8', windowsHide: true,
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, timeout: 6000, maxBuffer: 128 * 1024 }, (error, stdout) => {
+        let result;
+        try { result = JSON.parse(stdout); } catch { /* A failed subprocess must not look applied. */ }
+        if (error || !result || typeof result.state !== 'string') finish({ state: 'failed', resumed: false, applied: false,
+          reason: 'Pending setup recovery could not run; rerun setup or use mansur-setup status', errorCode: error?.code || 'invalid-recovery-output' });
+        else finish(result);
+      });
+    } catch (error) { finish({ state: 'failed', resumed: false, applied: false, reason: error.message }); }
+  });
+}
+
 function activate(context) {
   const output = vscode.window.createOutputChannel('Mansur Antigravity Stability');
   let running;
@@ -18,6 +48,10 @@ function activate(context) {
   const lockFile = path.join(context.globalStorageUri.fsPath, 'maintenance.lock');
   context.subscriptions.push(output);
   require('./profile.cjs').watchEditorProfile(vscode, context, output);
+  // One bounded attempt per activation. The persisted module validates the old
+  // request and resumes its original scope; it never creates new chat grants.
+  void resumePendingSetup(output).then(result => context.globalState.update('pendingSetupRecoveryStatus', result))
+    .catch(() => { if (alive) output.appendLine('Pending setup recovery status could not be saved.'); });
 
   function releaseLock() {
     if (!lockToken) return;
@@ -184,4 +218,4 @@ function activate(context) {
   schedule('startup');
 }
 
-module.exports = { activate };
+module.exports = { activate, resumePendingSetup };

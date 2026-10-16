@@ -240,7 +240,7 @@ test('A real completion worker supersedes older automation and waits for a norma
   try { process.env.PATH = bin + path.delimiter + original; prior = queueAutomation(f.env); }
   finally { process.env.PATH = original; }
   const deadline = Date.now() + 10000;
-  while (!fs.existsSync(prior.statusFile) && Date.now() < deadline) await new Promise(r => setTimeout(r, 20));
+  while ((!fs.existsSync(prior.statusFile) || JSON.parse(fs.readFileSync(prior.statusFile)).state === 'starting') && Date.now() < deadline) await new Promise(r => setTimeout(r, 20));
   assert.equal(JSON.parse(fs.readFileSync(prior.statusFile)).state, 'waiting');
   try { process.env.PATH = bin + path.delimiter + original; result = queueAutomation(f.env, { scope: 'completion' }); }
   finally { process.env.PATH = original; }
@@ -250,7 +250,7 @@ test('A real completion worker supersedes older automation and waits for a norma
   assert.notEqual(result.requestId, prior.requestId); assert.notEqual(result.statusFile, prior.statusFile);
   const queued = JSON.parse(fs.readFileSync(path.join(path.dirname(result.statusFile), 'request.json')));
   assert.equal(queued.protocolVersion, 2); assert.equal(queued.scope, 'completion');
-  while (!fs.existsSync(result.statusFile) && Date.now() < deadline) await new Promise(r => setTimeout(r, 20));
+  while ((!fs.existsSync(result.statusFile) || JSON.parse(fs.readFileSync(result.statusFile)).state === 'starting') && Date.now() < deadline) await new Promise(r => setTimeout(r, 20));
   assert.equal(JSON.parse(fs.readFileSync(result.statusFile)).state, 'waiting');
   await new Promise(r => setTimeout(r, 250));
   assert.equal(JSON.parse(fs.readFileSync(result.statusFile)).state, 'waiting');

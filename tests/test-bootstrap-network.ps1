@@ -46,7 +46,7 @@ function powershell.exe {
     $fileIndex = [Array]::IndexOf($args, '-File')
     Assert-True ($fileIndex -ge 0 -and (Test-Path -LiteralPath $args[$fileIndex + 1])) 'Launcher did not pass an existing script'
     $minimumIndex = [Array]::IndexOf($args, '-MinimumVersion')
-    Assert-True ($minimumIndex -ge 0 -and $args[$minimumIndex + 1] -eq '2.1.13') 'README must reject setup versions older than 2.1.13'
+    Assert-True ($minimumIndex -ge 0 -and $args[$minimumIndex + 1] -eq '2.2.0') 'README must reject setup versions older than 2.2.0'
     Assert-True (($args -contains '-QuietCompletion') -eq $networkTest.expectedQuiet) 'README completion scope missing or applied to full setup'
     $networkTest.launchedFile = $args[$fileIndex + 1]
     $global:LASTEXITCODE = $networkTest.launchStatus
@@ -116,23 +116,33 @@ $global:LASTEXITCODE = 0
         Assert-True ($rulesArgs[1] -eq 'install' -and $rulesArgs[2] -eq '--rules-only') 'Rules-only mode changed'
         Assert-Failure { Get-SetupArguments -Entry $entry -RulesOnly -QuietCompletion } '*Choose either*'
     }
+    Test-Case 'lite is an optional extension selection; ordinary download keeps the full profile' {
+        $entry = 'source with spaces/bin/mansur-setup.js'
+        $normal = @(Get-SetupArguments -Entry $entry)
+        Assert-True ($normal -notcontains '--extension-profile' -and $normal -contains '--auto-approve') 'Default download must retain the full profile and automation'
+        $lite = @(Get-SetupArguments -Entry $entry -ExtensionProfile lite)
+        $position = [Array]::IndexOf($lite, '--extension-profile')
+        Assert-True ($position -ge 0 -and $lite[$position + 1] -eq 'lite' -and $lite -contains '--auto-approve') 'Lite must preserve native automation while selecting extensions'
+        Assert-Failure { Get-SetupArguments -Entry $entry -QuietCompletion -ExtensionProfile lite } '*only supported for full setup*'
+        Assert-Failure { Get-SetupArguments -Entry $entry -RulesOnly -ExtensionProfile lite } '*only supported for full setup*'
+    }
     $versionSource = Join-Path $testRoot 'version check'; New-Item -ItemType Directory $versionSource | Out-Null
     Test-Case 'minimum version rejects stale setup before any installation' {
         Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"mansur-antigravity-setup","version":"2.1.12"}'
-        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.13' } '*older than required 2.1.13*'
+        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.2.0' } '*older than required 2.2.0*'
     }
     Test-Case 'current and newer releases satisfy the minimum version' {
-        foreach ($version in @('2.1.13','2.1.14','2.2.0')) {
+        foreach ($version in @('2.2.0','2.2.1','2.3.0')) {
             Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value ('{"name":"mansur-antigravity-setup","version":"' + $version + '"}')
-            $verified = Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.13'
+            $verified = Assert-SetupPackage -Source $versionSource -MinimumVersion '2.2.0'
             Assert-True ($verified.version -eq $version) 'Valid current release was rejected'
         }
     }
     Test-Case 'wrong identities and non-release versions are rejected' {
         Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"unexpected","version":"99.0.0"}'
-        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.13' } '*Unexpected downloaded package identity*'
-        Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"mansur-antigravity-setup","version":"2.1.13-old"}'
-        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.1.13' } '*invalid release version*'
+        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.2.0' } '*Unexpected downloaded package identity*'
+        Set-Content -LiteralPath (Join-Path $versionSource 'package.json') -Value '{"name":"mansur-antigravity-setup","version":"2.2.0-old"}'
+        Assert-Failure { Assert-SetupPackage -Source $versionSource -MinimumVersion '2.2.0' } '*invalid release version*'
     }
     Test-Case 'IWR timeout retries and replaces the partial file' {
         $networkTest.requestMode = 'retry'

@@ -1,4 +1,4 @@
-# Native agent automation and quiet AI completion — Setup 2.1.13
+# Native agent automation and quiet AI completion — Setup 2.2.0
 
 The three terminal options in Antigravity IDE 2.5.5 are **Request Review**, **Proceed in Sandbox**, and **Always Proceed**. They are native agent preferences, separate from VS Code's `chat.tools.terminal.autoApprove` command list. Artifact/plan review is another preference: **Always Ask** or **Always Proceed** in the audited build.
 
@@ -6,7 +6,7 @@ The old `safarov` snapshot and its embedded prompt contain seven allowed termina
 
 ## What installation does
 
-The README bootstrap invokes `install --auto-approve`. It selects the chat policies below and disables automatic AI completion and next-edit previews:
+The ordinary README download/update bootstrap invokes `install --auto-approve`. It selects the chat policies below and disables automatic AI completion and next-edit previews. Both `full` and `lite` extension profiles use these same preferences:
 
 | Native preference | Stored value | Behavior selected in the official UI |
 |---|---|---|
@@ -18,15 +18,21 @@ The README bootstrap invokes `install --auto-approve`. It selects the chat polic
 
 The chat records live in `antigravityUnifiedStateSync.agentPreferences`; the two Tab records live in `antigravityUnifiedStateSync.tabPreferences`. Both topics are in `%APPDATA%\Antigravity IDE\User\globalStorage\state.vscdb` (the product's discovered user-data name is used). Topic entries contain a Row whose `value` is another Base64 protobuf. These Tab modes are enum values encoded as `int32`, not Boolean editor settings. Writing ordinary JSON numbers to `settings.json` would not implement these native preferences.
 
-`editor.inlineSuggest.enabled: false` is also applied globally, to all existing language override selectors and to the managed JS/TS selectors. It suppresses transparent inline/ghost text but does not control the separate native Tab preference. This is why checking only that JSON setting was insufficient. The `quiet-completion` command applies both layers without touching the agent-preferences topic: existing terminal, artifact and MCP approvals stay byte-for-byte unchanged. It replaces the active helper's desired plan with only the quiet-completion keys, preventing an old plan from reapplying chat settings. Variable names, JS/TS auto-imports and file/path IntelliSense remain enabled by the managed profile. The helper reports detected project overrides as `needs-attention`; it does not change the project. Detection covers managed selectors and JS/TS; a project-only override for another language can require manual inspection. Native Tab OFF is independent of that editor setting.
+`editor.inlineSuggest.enabled: false` is also applied globally, to all existing language override selectors and to the managed JS/TS selectors. It suppresses transparent inline/ghost text but does not control the separate native Tab preference. This is why checking only that JSON setting was insufficient. The `quiet-completion` command applies both layers without touching the agent-preferences topic: existing terminal, artifact and MCP approvals stay byte-for-byte unchanged. It replaces the active helper's desired plan with only the quiet-completion keys, preventing an old plan from reapplying chat settings. Variable names, JS/TS auto-imports and file/path IntelliSense remain enabled by the managed profile.
+
+Helper 1.2.0 checks registered languages, user/workspace/folder selectors, combined selectors, open document languages and every workspace folder. **Mansur: Inspect Project Setting Conflicts (Read Only)** reports the setting, effective value, language, scope and known source path. A source path can be unavailable for user/policy settings exposed only through the editor API. Read/parse failures produce `needs-attention` rather than a successful check. The report appears in helper Output and its status-bar indicator. The inspector does not edit `.vscode/settings.json`, `.code-workspace` or application source files. Native Tab OFF remains independent of the editor setting.
 
 Red struck-out lines can belong to an automatic next-edit preview or to a diff produced by an explicit chat request. A screenshot alone does not establish which subsystem produced them. Quiet completion disables automatic AI suggestions; it does not hide review diffs or stop the chat agent from making requested changes.
 
-The operation checks the installed IDE version and the SHA-256 of its actual `resources/app/out/main.js`. Only the audited Windows 2.5.5 bundle is accepted. It preserves unrelated preferences, model/account data, non-MCP command/file grants, Secure Mode and sandbox preferences. Project, enterprise and Secure Mode overrides can still require review. Login and account authorization are not supplied by this operation. Selecting Always Proceed means ordinary agent actions can execute without another confirmation; use it only for workflows where that behavior is intended.
+Before a production full install creates its install lock, cancels a worker, makes a backup or changes the profile, a read-only native preflight checks the installed bundle, embedded USS schema, SQLite database and managed preference rows. Quiet-completion also runs this preflight before changes. [The compatibility catalog](../config/native-compatibility.json) currently accepts only the audited Windows x64 2.5.5 build and its exact SHA-256. A future version needs an audited official artifact and schema/key/enum adapter; changing a version string does not make it supported. Rules-only and isolated fixture installs do not change the production native profile.
 
-The IDE must be closed before writing native preferences. If it is open, installation copies a small runtime outside its temporary checkout and launches a hidden detached Node worker. It waits for a normal shutdown, refuses active WAL/SHM files, then backs up and applies the change. No IDE process is closed or killed. Waiting expires after 24 hours, is not an OS startup task, and does not survive an OS reboot; rerun `quiet-completion` or `automation`, matching the intended scope, if it times out or the machine reboots first. Restart the IDE after the worker records `applied`; use a new chat to pick up changed chat policies.
+The operation preserves unrelated preferences, model/account data, non-MCP command/file grants, Secure Mode and sandbox preferences. Project, enterprise and Secure Mode overrides can still require review. Login and account authorization are not supplied by this operation. Selecting Always Proceed means ordinary agent actions can execute without another confirmation; use it only for workflows where that behavior is intended.
 
-Queued does **not** mean applied. Each request has its own protocol-2 JSON status at `%USERPROFILE%\.gemini\config\mansur-setup\automation-v2\status-<requestId>.json`, recording `waiting`, `applied`, `failed` or `cancelled`. Use the exact `statusFile` path printed by the command; there is no shared `status.json` for new requests. Separate status files prevent an older worker from overwriting a newer request's result. The separate `automation-v2` directory also prevents a previously loaded 2.1.12 worker from consuming the new request format. A successful result includes `runtimeVerified: false`: SQLite readback is verified, the user's live UI and chat are not. `doctor` reports the stored native modes separately.
+The IDE must be closed before writing native preferences. If it is open, installation copies a small runtime outside its temporary checkout and launches a hidden detached Node worker. It waits for a normal shutdown, refuses active WAL/SHM files, then backs up and applies the change. No IDE process is closed or killed. A worker waits for at most 24 hours and is not a Windows startup task. After interruption, reboot or timeout, `resume` or helper 1.2.0 at IDE startup can restart the original protocol-2 request with its original ID and scope. A completion-only request cannot turn into chat automation during recovery. A cancelled, superseded or already live request is not restarted. Unsupported old protocols require rerunning the current setup. Recovered work still waits for all IDE windows to close normally. Restart the IDE after the worker records `applied`; use a new chat to pick up changed chat policies.
+
+Queued does **not** mean applied. Each request has its own protocol-2 JSON status at `%USERPROFILE%\.gemini\config\mansur-setup\automation-v2\status-<requestId>.json`. Use `npm.cmd run status` or `node bin/mansur-setup.js status --json` for the interpreted result: starting/waiting, applied, failed, cancelled, interrupted/expired or stored-preference drift. Status checks worker PID, boot identity, heartbeat and native readback. Its checks cover the recorded request's scope; a bare installation's separately applied MCP grant is not part of its completion-only worker request.
+
+Use the exact `statusFile` printed by the command; there is no shared `status.json` for new requests. Separate files prevent an older worker from overwriting a newer request's result. The separate `automation-v2` directory also prevents a previously loaded 2.1.12 worker from consuming the new format. A successful result includes `runtimeVerified: false`: SQLite readback is verified, the user's live UI and chat are not. `doctor` reports the stored native modes separately.
 
 ## Commands and rollback
 
@@ -46,18 +52,39 @@ node bin/mansur-setup.js automation
 # Preview without writing or launching a worker:
 node bin/mansur-setup.js automation --dry-run
 
+# Inspect the current native request, or resume an interrupted request:
+npm.cmd run status
+node bin/mansur-setup.js status --json
+npm.cmd run resume
+
 # Install files while preserving all native approval preferences:
 node bin/mansur-setup.js install --skip-permissions
 
-# With IDE closed: use the exact backup directory returned by automation:
+# Restore files and the linked native baseline together, with IDE closed:
+node bin/mansur-setup.js restore --dry-run
+node bin/mansur-setup.js restore "C:\Users\YOUR_USER\.gemini\backups\setup-backup-pre-install-..."
+
+# Low-level native-only rollback for an automation backup:
 node bin/mansur-setup.js automation-restore "C:\Users\YOUR_USER\.gemini\backups\agent-automation-UUID"
 ```
 
 `--auto-approve` and `--skip-permissions` are mutually exclusive. Bare `install` retains its earlier MCP-only behavior for chat approvals and now also disables native AI Tab; it does not select the global terminal/artifact policies. The README bootstrap opts into those chat policies explicitly with `--auto-approve`. `permissions` / `permissions-restore` remain MCP-only commands.
 
-The README also contains a one-command fresh download with the bootstrap switch `-QuietCompletion`. It resolves and downloads the current commit, enforces `-MinimumVersion 2.1.13`, then runs the completion-only command instead of a full install. It does not reapply chat approvals, extensions, rules or the full editor profile. The normal README bootstrap without this switch still runs the full setup with `--auto-approve`.
+The README also contains a one-command fresh download with the bootstrap switch `-QuietCompletion`. It resolves and downloads the current commit, enforces `-MinimumVersion 2.2.0`, then runs the completion-only command instead of a full install. It does not reapply chat approvals, extensions, rules or the full editor profile. The normal README bootstrap without this switch still runs the full setup with `--auto-approve`.
 
-Each actual native change creates a private `agent-automation-*` backup containing the previous database, original managed topic values and a format-2 manifest. Restore is scoped to the topics and fields owned by that operation. A completion-only backup restores only the two Tab records; an all-mode backup can restore those records plus the owned terminal/artifact records and MCP grants. Later unrelated preferences are preserved, including the distinction between an absent topic and an originally empty one. Old format-1 backups remain supported and restore only the old agent-preferences scope, leaving Tab preferences untouched. Restore also cancels a queued request. This native rollback does not restore the separate `settings.json` edit; user settings have their own backup. Protect these backups: a complete profile database may contain account data; it is never included in the repository or package.
+New full-install and quiet-completion backups link a native baseline captured before their profile changes. The linked `agent-automation-*` snapshot contains only the owned preference rows and a format-2 manifest, not account rows or a complete database. Full automation owns terminal/artifact policies, MCP grants and Tab. `--skip-permissions` and completion-only operations own Tab only. Bare install owns MCP and Tab; its snapshot uses `includeAgentPolicies: false` so rollback leaves terminal/artifact policies intact. Native snapshot capture uses a read transaction and can read committed data while the IDE is open; applying or restoring native preferences still requires the IDE to be closed.
+
+The ordinary `restore` command validates the file backup and linked native snapshot, cancels pending workers from both published worker directories, and restores both parts. It also accepts `quiet-completion-*` backups where only native preferences changed. Restore preserves later unrelated preferences, including the distinction between an absent topic and an originally empty one. It does not edit or delete application source files in the user's projects. File and database restoration are separate operations: a later file IO failure reports `partial: true`, and this is not an atomic transaction across both storage types. See [recovery details](RELIABILITY-2.2.0.md#one-coordinated-restore).
+
+Older file-only backups still restore their files with `complete: false` and a warning that native history is unavailable. Native-only `automation-restore` remains supported; old format-1 native backups restore the old agent-preferences scope and leave Tab untouched. Low-level native updates can still create a private database backup, which may contain account data. Keep all private backups local; none are included in the repository or package.
+
+After temporary bootstrap cleanup, status and recovery work through the saved runtime without keeping the checkout:
+
+```powershell
+$runtime = Join-Path $env:USERPROFILE '.gemini\config\mansur-setup\automation-v2'
+node (Join-Path $runtime 'setup-status.js') --status (Join-Path $runtime 'request.json')
+node (Join-Path $runtime 'setup-status.js') --resume (Join-Path $runtime 'request.json')
+```
 
 ## Compatible features retained from the old setup
 
@@ -84,7 +111,9 @@ The installer was extracted for static inspection; it was not executed on this L
 
 ## Executed validation and reproduction
 
-Setup 2.1.13 checks completed on 16 October 2026 in the cloud Linux workspace:
+Current 2.2.0 release evidence belongs in [RELIABILITY-VERIFICATION.json](RELIABILITY-VERIFICATION.json). The [Windows smoke workflow](../.github/workflows/native-windows-smoke.yml) retains its own Actions report and diagnostics. An added workflow is not evidence of a passing Windows run. Offline Linux/SQLite tests and published-download verification do not establish authenticated chat behavior or model-generated suggestions in the user's IDE. [The reliability guide](RELIABILITY-2.2.0.md#windows-smoke-workflow) describes the scope.
+
+Historical Setup 2.1.13 checks completed on 16 October 2026 in the cloud Linux workspace:
 
 | Check | Result |
 |---|---|
